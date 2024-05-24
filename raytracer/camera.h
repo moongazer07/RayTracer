@@ -1,6 +1,7 @@
 #pragma once
 
 #include "raytracerlib.h"
+#include <math.h>
 
     // 1. Check wheathe ray intersects any object
     // 2. Depending on the mode, compute the color in a point
@@ -94,13 +95,13 @@ std::optional<Intersection> CheckIntersection(const Ray& ray, const Scene& scene
             intersection = int_with_sphere;
         }
     }
-    for (auto poly : scene.GetObjects()) {
-        std::optional<Intersection> int_with_poly = GetIntersection(ray, poly.polygon);
-        if (int_with_poly != std::nullopt && int_with_poly->GetDistance() < dist) {
-            dist = int_with_poly->GetDistance(); 
-            intersection = int_with_poly;
-        }
-    }
+    // for (auto poly : scene.GetObjects()) {
+    //     std::optional<Intersection> int_with_poly = GetIntersection(ray, poly.polygon);
+    //     if (int_with_poly != std::nullopt && int_with_poly->GetDistance() < dist) {
+    //         dist = int_with_poly->GetDistance(); 
+    //         intersection = int_with_poly;
+    //     }
+    // }
     // std::cout << "Intersection: ";
     // PrintVec(intersection->GetPosition());
     // std::cout << "and distance" << intersection->GetDistance() << "\n";

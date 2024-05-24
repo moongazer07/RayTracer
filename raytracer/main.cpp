@@ -6,8 +6,8 @@
 // And the second step is rendering itself
 
 int main () {
-    std::string name_of_file = "/home/kkopnev/Documents/RayTracer/raytracer/tests/box/cube.obj";
-    int image_width = 1080;
+    std::string name_of_file = "C:/Users/kerel/my_code/C++/RayTracer/raytracer/tests/one_sphere.obj";
+    int image_width = 720;
     int image_height = 720;
     std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
     Scene scene = ReadScene(name_of_file);
