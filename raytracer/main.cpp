@@ -9,6 +9,8 @@ int main () {
     std::string name_of_file = ".obj";
 
     Scene scene = ReadScene(name_of_file);
-    Camera camera{}
-    Image image = Render(scene, )
+    Camera camera{1080, 720, {0, 0, 0}, {0, 0, -1}, 90};
+    RenderOptions options{1, RenderMode::kDepth};
+    Image image = Render(camera, scene, options);
+    image.Write("CornellBox.png");
 }

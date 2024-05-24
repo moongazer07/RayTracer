@@ -4,7 +4,7 @@
 
 class Ray {
 public:
-    Ray(Vector origin, Vector direction) : origin_(origin)
+    Ray(const Vector& origin, const Vector& direction) : origin_(origin)
                                          , direction_(direction) {
         direction_.Normalize();   
     }

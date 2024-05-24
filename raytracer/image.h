@@ -4,7 +4,7 @@
 #include <jpeglib.h>
 #include <iostream>
 
-struct RGB {
+struct RGB {    
     int r, g, b;
     bool operator==(const RGB& rhs) const {
         return r == rhs.r && g == rhs.g && b == rhs.b;
@@ -186,8 +186,8 @@ public:
         png_write_image(png, bytes_);
         png_write_end(png, nullptr);
 
-        fclose(fp);
         png_destroy_write_struct(&png, &info);
+        fclose(fp);
     }
 
     RGB GetPixel(int y, int x) const {

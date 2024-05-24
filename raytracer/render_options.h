@@ -6,5 +6,5 @@ enum class RenderMode {
 
 struct RenderOptions {
     int depth;
-    RenderMode mode = RenderMode::kFull;
+    RenderMode mode;
 };

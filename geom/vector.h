@@ -120,6 +120,12 @@ inline double Length(const Vector& vec) {
     return std::sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]);
 }
 
+Vector UnitVector(const Vector& vec) {
+    Vector tmp = vec;
+    tmp.Normalize();
+    return tmp;
+}
+
 void PrintVec(const Vector& vec) {
     std::cout << "(" << vec[0] << " " << vec[1] << " " << vec[2] << ")\n";
 }
