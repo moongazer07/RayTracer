@@ -135,7 +135,7 @@ inline std::map<std::string, Material> ReadMaterials(std::string filename) {
     std::ifstream mtl_file(file_name);
 
     if (!mtl_file.is_open()) {
-        std::cerr << "Error opening the file" << std::endl;
+        std::cerr << "Error opening the file :: read materials" << std::endl;
     }
     std::string line;
     std::vector<std::string> splitted;
@@ -169,15 +169,25 @@ inline std::map<std::string, Material> ReadMaterials(std::string filename) {
     return materials;
 }
 
-inline Scene ReadScene(std::string filename) { 
-    std::string file_name{filename};
+std::string GetPath(std::string path) {
+    std::vector<std::string> splitted = Split(path, '/');
+    std::string retreived_path = "/";
+
+    for (size_t ind = 0; ind < splitted.size() - 1; ++ind) {
+        retreived_path += splitted[ind] + "/";
+    }
+    return retreived_path;
+}
+
+inline Scene ReadScene(std::string file_name) { 
 
     std::ifstream obj_file(file_name);
     std::vector<std::string> splitted;
 
     if (!obj_file.is_open()) {
-        std::cerr << "Error opening the file" << std::endl;
+        std::cerr << "Error opening the file :: read scene" << std::endl;
     }
+    std::string path = GetPath(file_name);
     std::string line;
     Scene scene;
     const Material* current_material = nullptr;
@@ -205,7 +215,7 @@ inline Scene ReadScene(std::string filename) {
         } else if (splitted[ind] == "usemtl") {
                 current_material = &scene.GetMaterials().at(splitted[FindNonEmpty(splitted, ind)]);
         } else if (splitted[ind] == "mtllib") {
-            scene.SetMaterials(ReadMaterials(splitted[FindNonEmpty(splitted, ind)]));
+            scene.SetMaterials(ReadMaterials(path + splitted[FindNonEmpty(splitted, ind)]));
         } 
     }
     obj_file.close();

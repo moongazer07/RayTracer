@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../geom/geometry.h"
+#include "material.h"
 #include "object.h"
 #include "light.h"
-#include "material.h"
 
 #include <string_view>
 #include <vector>
