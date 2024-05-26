@@ -86,6 +86,7 @@ void write_color(const Vector& pixel_color) {
     int g = pixel_color[1] * 255.999;
     int b = pixel_color[2] * 255.999;
     r = g - b;
+    r = +r;
     // std::cout << r << ' ' << g << ' ' << b << '\n';
 }
 
@@ -102,14 +103,16 @@ std::optional<Intersection> CheckIntersection(const Ray& ray, const Scene& scene
     for (auto poly : scene.GetObjects()) {
         std::optional<Intersection> int_with_poly = GetIntersection(ray, poly.polygon);
         if (int_with_poly != std::nullopt) {
-            std::cout << "Intersected the material:" << poly.material->name << "\n";
+            // std::cout << "Intersected the material:" << poly.material->name << "\n";
+            std::cout << "Point of intersection: ";
+            PrintVec(int_with_poly->GetPosition());
             std::cout << "With distance: " << int_with_poly->GetDistance() << "\n";
             std::cout << "Closest distance: " << intersection->GetDistance() << "\n";
         }
         if (int_with_poly != std::nullopt && int_with_poly->GetDistance() < dist) {
             dist = int_with_poly->GetDistance(); 
             intersection = int_with_poly;
-            std::cout << "Current material: " << poly.material->name << "\n";
+            // std::cout << "Current material: " << poly.material->name << "\n";
         }
     }
     return intersection;
