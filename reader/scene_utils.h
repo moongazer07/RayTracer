@@ -55,7 +55,7 @@ std::array<double, 3> RetreiveVector(const std::vector<std::string>& splitted, s
 
     while (vec_indx < vec.size()) {
         splt_indx = FindNonEmpty(splitted, splt_indx);
-        if (!(splt_indx < splitted.size())) {
+        if (splt_indx == 0) {
             std::cerr << "Error: no requited argument!\n";
             return vec;
         }

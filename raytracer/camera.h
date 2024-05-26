@@ -59,17 +59,20 @@ struct Camera {
         , look_to_(look_to) {
             double focal_length = Length(look_to_ - look_from_);
             double theta = DegreesToRadians(fov_);
-            view_port_height_ = std::tan(theta / 2) * focal_length * 2;
-            view_port_width_ = view_port_height_ * (static_cast<double>(screen_width_/screen_height_));
+            view_port_height_ = std::tan(theta/2) * focal_length * 2;
+            view_port_width_ = view_port_height_ * static_cast<double>(screen_width_)/screen_height_;
             vup_ = Vector(0, 1, 0);
             Vector w{UnitVector(look_from_ - look_to_)};
-            Vector u{UnitVector(CrossProduct(vup_, w))};
-            Vector v{CrossProduct(w, u)};
+            if (Length(CrossProduct(vup_, w)) < std::numeric_limits<float>::epsilon()) {
+                vup_ = Vector(1, 0, 0);
+            } 
+            Vector u{UnitVector(CrossProduct(w, vup_))};
+            Vector v{CrossProduct(u, w)};
             Vector view_port_horizontal{view_port_width_ * u};
             Vector view_port_vertical{view_port_height_ * -v};
             view_port_horizontal_del_ = view_port_horizontal / screen_width_;
             view_port_vertical_del_ = view_port_vertical / screen_height_;
-            Vector view_port_upperleft{look_from - (focal_length * w) - (view_port_horizontal + view_port_vertical) / 2.0};
+            Vector view_port_upperleft{look_from_ - (focal_length * w) - (view_port_horizontal + view_port_vertical) / 2.0};
             view_port_00_pixel_ = view_port_upperleft + 0.5 * (view_port_vertical_del_ + view_port_horizontal_del_);
         }
 };
@@ -82,7 +85,8 @@ void write_color(const Vector& pixel_color) {
     int r = pixel_color[0] * 255.999;
     int g = pixel_color[1] * 255.999;
     int b = pixel_color[2] * 255.999;
-    std::cout << r << ' ' << g << ' ' << b << '\n';
+    r = g - b;
+    // std::cout << r << ' ' << g << ' ' << b << '\n';
 }
 
 std::optional<Intersection> CheckIntersection(const Ray& ray, const Scene& scene) {
@@ -95,16 +99,19 @@ std::optional<Intersection> CheckIntersection(const Ray& ray, const Scene& scene
             intersection = int_with_sphere;
         }
     }
-    // for (auto poly : scene.GetObjects()) {
-    //     std::optional<Intersection> int_with_poly = GetIntersection(ray, poly.polygon);
-    //     if (int_with_poly != std::nullopt && int_with_poly->GetDistance() < dist) {
-    //         dist = int_with_poly->GetDistance(); 
-    //         intersection = int_with_poly;
-    //     }
-    // }
-    // std::cout << "Intersection: ";
-    // PrintVec(intersection->GetPosition());
-    // std::cout << "and distance" << intersection->GetDistance() << "\n";
+    for (auto poly : scene.GetObjects()) {
+        std::optional<Intersection> int_with_poly = GetIntersection(ray, poly.polygon);
+        if (int_with_poly != std::nullopt) {
+            std::cout << "Intersected the material:" << poly.material->name << "\n";
+            std::cout << "With distance: " << int_with_poly->GetDistance() << "\n";
+            std::cout << "Closest distance: " << intersection->GetDistance() << "\n";
+        }
+        if (int_with_poly != std::nullopt && int_with_poly->GetDistance() < dist) {
+            dist = int_with_poly->GetDistance(); 
+            intersection = int_with_poly;
+            std::cout << "Current material: " << poly.material->name << "\n";
+        }
+    }
     return intersection;
 }
 
@@ -140,6 +147,7 @@ void Render(const Camera& camera, const Scene& scene, const RenderOptions& rende
             }
             write_color(pixel_color);
         }
+
     }
 }
 

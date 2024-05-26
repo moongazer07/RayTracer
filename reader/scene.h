@@ -100,31 +100,34 @@ std::array<Vector, 3> FillVertex(Scene* scene, const std::array<int, 3>& index) 
     return vertex;
 }
 
-void RetreiveFaces(const std::vector<std::string>& splitted, const Material* material, Scene* scene) {
+void RetreiveFaces(const std::vector<std::string>& splitted, const Material* material, Scene* scene, int begin) {
     std::array<Vector, 3> initial;
     std::array<Vector, 3> second;
     std::array<Vector, 3> third;
     std::array<int, 3> index;
+    size_t splt_indx = begin;
     int retreived_vrtx = 0;
 
-    for (size_t i = 1; i < splitted.size(); ++i) {
-        if (splitted[i].empty()) {
-            continue;
+    while (splt_indx < splitted.size()) {
+        splt_indx = FindNonEmpty(splitted, splt_indx);
+        if (splt_indx == 0) {
+            return;
         }
-        index = GetIndex(splitted[i], {scene->GetVertices().size(), scene->GetVectorTextures().size(), scene->GetVectorNormals().size()});
-        if (i != 1 && i % 2 == 0) {
-            second = FillVertex(scene, index);
-            ++retreived_vrtx;
-        } else if (i != 1 && i % 2 == 1) {
+        index = GetIndex(splitted[splt_indx], {scene->GetVertices().size(), scene->GetVectorTextures().size(), scene->GetVectorNormals().size()});
+        if (retreived_vrtx == 2) {
             third = FillVertex(scene, index);
             ++retreived_vrtx;
-        } else if (i == 1 && !splitted[i].empty()) {
+        } else if (retreived_vrtx == 1) {
+            second = FillVertex(scene, index);
+            ++retreived_vrtx;
+        } else if (retreived_vrtx == 0) {
             initial = FillVertex(scene, index);
             ++retreived_vrtx;
         } 
         if (retreived_vrtx == 3) {
             scene->AddObject({material, initial, second, third});
-            retreived_vrtx = 1;
+            second = third;
+            retreived_vrtx = 2;
         }
     }
 }
@@ -211,7 +214,7 @@ inline Scene ReadScene(std::string file_name) {
         } else if (splitted[ind] == "P") {
             scene.AddLight(RetreiveLight(splitted, &ind));
         } else if (splitted[ind] == "f") {
-            RetreiveFaces(splitted, current_material, &scene);
+            RetreiveFaces(splitted, current_material, &scene, ind);
         } else if (splitted[ind] == "usemtl") {
                 current_material = &scene.GetMaterials().at(splitted[FindNonEmpty(splitted, ind)]);
         } else if (splitted[ind] == "mtllib") {
