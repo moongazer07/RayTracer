@@ -85,41 +85,35 @@ void write_color(const Vector& pixel_color) {
     int r = pixel_color[0] * 255.999;
     int g = pixel_color[1] * 255.999;
     int b = pixel_color[2] * 255.999;
-    r = g - b;
-    r = +r;
-    // std::cout << r << ' ' << g << ' ' << b << '\n';
+    // r = g - b;
+    std::cout << r << ' ' << g << ' ' << b << '\n';
 }
 
-std::optional<Intersection> CheckIntersection(const Ray& ray, const Scene& scene) {
+std::pair<std::optional<Intersection>, const Material*> CheckIntersection(const Ray& ray, const Scene& scene) {
     double dist = std::numeric_limits<double>::max();
+    const Material* material = nullptr;
     std::optional<Intersection> intersection = std::nullopt;
     for (auto sphere : scene.GetSphereObjects()) {
-        std::optional<Intersection> int_with_sphere = GetIntersection(ray, sphere.sphere);
+        auto int_with_sphere = GetIntersection(ray, sphere.sphere);
         if (int_with_sphere != std::nullopt && int_with_sphere->GetDistance() < dist) {
             dist = int_with_sphere->GetDistance();
             intersection = int_with_sphere;
+            material = sphere.material;
         }
     }
     for (auto poly : scene.GetObjects()) {
-        std::optional<Intersection> int_with_poly = GetIntersection(ray, poly.polygon);
-        if (int_with_poly != std::nullopt) {
-            // std::cout << "Intersected the material:" << poly.material->name << "\n";
-            std::cout << "Point of intersection: ";
-            PrintVec(int_with_poly->GetPosition());
-            std::cout << "With distance: " << int_with_poly->GetDistance() << "\n";
-            std::cout << "Closest distance: " << intersection->GetDistance() << "\n";
-        }
+        auto int_with_poly = GetIntersection(ray, poly.polygon);
         if (int_with_poly != std::nullopt && int_with_poly->GetDistance() < dist) {
             dist = int_with_poly->GetDistance(); 
             intersection = int_with_poly;
-            // std::cout << "Current material: " << poly.material->name << "\n";
+            material = poly.material;
         }
     }
-    return intersection;
+    return {intersection, material};
 }
 
 Vector ComputeColorNormal(const Ray& ray, const Scene& scene) {
-    std::optional<Intersection> intersection = CheckIntersection(ray, scene);
+    auto [intersection, material] = CheckIntersection(ray, scene);
     if (intersection == std::nullopt) {
         return {0, 0, 0};
     }
@@ -127,6 +121,43 @@ Vector ComputeColorNormal(const Ray& ray, const Scene& scene) {
     normal = normal * 0.5 + 0.5;
 
     return normal;
+}
+
+Vector ComputeColorFull(const Ray& ray, const Scene& scene, int depth) {
+    //  I_p = I_base_p + I_comp_p
+    //  I_base_p = K_a + K_e + al_0 * (Sum_{m \in lights} K_d * I_d(p, m) +
+    //  K_s * I_s (p, m)) , I_d and I_s are diffuse and specular parts
+    //  from Phong reflection model
+
+    auto [intersection, material] = CheckIntersection(ray, scene);
+    if (intersection == std::nullopt || material == nullptr) {
+        return {0, 0, 0};
+    }
+    Vector ambient_component = material->ambient_color;
+    Vector intensity = material->intensity;
+    Vector diffuse_component;
+    Vector specular_component;
+    for (auto light : scene.GetLights()) {
+        Vector ray_direction = light.position - intersection->GetPosition();
+        Ray light_ray{light.position, ray_direction};
+        if (CheckIntersection(light_ray, scene).first == std::nullopt) {
+            // Here we add the diffuse and specular components
+            // which depend on the angle of light
+            // don't forget to take the power of specular component
+            // and also add the intensivity of light
+            diffuse_component; 
+            specular_component;
+        }
+    }
+    // Compute the reflection using recursion
+    Vector reflection = ComputeColorFull(reflected ray, scene, depth - 1);
+    //Compute refraction using recursion, if we are in the object, we might 
+    // want to use some indicator
+    // the same is related to providing the difference in the environment
+    // difference
+    Vector reflection = ComputeColorFull(reflected ray, scene, depth - 1);
+    // add a final formula in the endl
+
 }
 
 void Render(const Camera& camera, const Scene& scene, const RenderOptions& render_options) {
@@ -143,8 +174,8 @@ void Render(const Camera& camera, const Scene& scene, const RenderOptions& rende
             //     break;
             case RenderMode::kNormal :
                 pixel_color = ComputeColorNormal(ray, scene);
-            // case RenderMode::kFull :
-            //     pixel_color = ComputeColorFull(ray, scene, render_options.depth);
+            case RenderMode::kFull :
+                pixel_color = ComputeColorFull(ray, scene, render_options.depth);
             default:
                 break;
             }
