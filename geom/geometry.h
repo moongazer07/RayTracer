@@ -28,6 +28,9 @@ std::optional<Intersection> GetIntersection(const Ray& ray, const Sphere& sphere
 
     double t1c = std::sqrt(rad_2 - d);
     double t1 = std::abs(tc - t1c);
+    if (t1 < 0.01) {
+        return std::nullopt;
+    }
     Vector IntersectionPoint = ray.at(t1);
     Vector normal = (IntersectionPoint - sphere.GetCenter());
     normal.Normalize();

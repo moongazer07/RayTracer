@@ -35,12 +35,24 @@ public:
         return *this;
     }
 
-
+    Vector operator*= (const Vector& rhs) {
+        data_[0] *= rhs[0];
+        data_[1] *= rhs[1];
+        data_[2] *= rhs[2];
+        return *this;
+    }
 
     Vector& operator-=(const Vector& rhs) {
         data_[0] -= rhs[0];
         data_[1] -= rhs[1];
         data_[2] -= rhs[2];
+        return *this;
+    }
+
+    Vector& operator /= (const Vector& rhs) {
+        data_[0] /= rhs[0];
+        data_[1] /= rhs[1];
+        data_[2] /= rhs[2];
         return *this;
     }
 
@@ -105,6 +117,18 @@ Vector operator- (const Vector& lhs, const Vector& rhs) {
     return tmp;
 }
 
+Vector operator* (const Vector& lhs, const Vector& rhs) {
+    Vector tmp = lhs;
+    tmp *= rhs;
+    return tmp;
+}
+
+Vector operator/ (const Vector& lhs, const Vector& rhs) {
+    Vector tmp = lhs;
+    tmp /= rhs;
+    return tmp;
+}
+
 Vector operator+ (const Vector& lhs, double rhs) {
     Vector tmp = lhs;
     tmp += rhs;
@@ -119,10 +143,6 @@ Vector operator- (const Vector& lhs, double rhs) {
     Vector tmp = lhs;
     tmp -= rhs;
     return tmp;
-}
-
-Vector operator- (double lhs, const Vector& rhs) {
-    return rhs - lhs;
 }
 
 Vector operator* (const Vector& lhs, double rhs) {

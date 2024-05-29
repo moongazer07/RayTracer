@@ -36,6 +36,8 @@
     //                    9) Implement Bounded Volume Hierarchies
 
 double DegreesToRadians(double degrees);
+Vector ComputeColorFull(const Ray& ray, const Scene& scene, int depth, double refraction_index);
+
 
 struct Camera {
 
@@ -50,7 +52,7 @@ struct Camera {
         Vector view_port_horizontal_del_;
         Vector view_port_vertical_del_;
         Vector view_port_00_pixel_;
-         
+
         Camera(int screen_width, int screen_height, double fov, Vector look_from, Vector look_to) 
         : screen_width_(screen_width)
         , screen_height_(screen_height)
@@ -78,14 +80,13 @@ struct Camera {
 };
 
 double DegreesToRadians(double degrees) {
-            return M_PI/180 * degrees;
-        }
+    return M_PI/180 * degrees;
+}
 
 void write_color(const Vector& pixel_color) {
     int r = pixel_color[0] * 255.999;
     int g = pixel_color[1] * 255.999;
     int b = pixel_color[2] * 255.999;
-    // r = g - b;
     std::cout << r << ' ' << g << ' ' << b << '\n';
 }
 
@@ -112,6 +113,80 @@ std::pair<std::optional<Intersection>, const Material*> CheckIntersection(const 
     return {intersection, material};
 }
 
+double ComputeDiffuse(const Vector& ray_direction, const Vector& normal) {
+    return DotProduct(ray_direction, normal);
+}
+
+double ComputeSpecular(const Vector& ray_direction, const Vector& normal, const Vector& viewer_direction, int exponent) {
+    Vector reflection = UnitVector(Reflect(ray_direction, normal));
+    double cos = DotProduct(reflection, -viewer_direction);
+    if (cos < 0) {
+        return 0;
+    }
+    return std::pow(cos, exponent);
+}
+
+Vector ComputeReflection(const Intersection& intersection, const Ray& prev_ray, const Scene& scene, int depth) {
+    Vector reflection_dir = Reflect(prev_ray.GetDirection(), intersection.GetNormal());
+    Ray reflected_ray{intersection.GetPosition(), reflection_dir};
+    return ComputeColorFull(reflected_ray, scene, depth, 1);
+}
+
+Vector ComputeRefraction(const Intersection& intersection, const Ray& prev_ray, const Scene& scene,  
+                                                                                double env_refraction_indx,
+                                                                                double mat_refraction_indx, 
+                                                                                                int depth) {
+    std::optional<Vector> refraction_dir = Refract(prev_ray.GetDirection(), intersection.GetNormal(), env_refraction_indx / mat_refraction_indx);
+    if (!refraction_dir.has_value()) {
+        return {0, 0, 0};
+    }
+    Ray refracted_ray{intersection.GetPosition(), refraction_dir.value()};
+    return ComputeColorFull(refracted_ray, scene, depth, mat_refraction_indx);
+}
+
+std::pair<Vector, Vector> ComputeDiffusiveSpecular (const Scene& scene, const Ray& prev_ray, 
+                                                    const Intersection& intersection, double specular_exp) {
+    Vector diffuse_component, specular_component, light_direction;
+    Vector point_intersection = intersection.GetPosition();
+    Vector normal = intersection.GetNormal();
+    for (auto light : scene.GetLights()) {
+        light_direction = UnitVector(light.position - point_intersection);
+        if (!CheckIntersection({point_intersection, light_direction}, scene).first.has_value()) {
+            diffuse_component += light.intensity * ComputeDiffuse(light_direction, normal); 
+            specular_component += light.intensity * ComputeSpecular(light_direction, normal, 
+                                                                -prev_ray.GetDirection(), specular_exp);
+        }
+    }
+    return {diffuse_component, specular_component};
+}
+
+Vector ComputeColorFull(const Ray& ray, const Scene& scene, int depth, double refraction_index) {
+    if (depth < 1) {
+        return {0, 0, 0};
+    }
+    auto [intersection, material] = CheckIntersection(ray, scene);
+    if (!intersection.has_value() || material == nullptr) {
+        return {0, 0, 0};
+    }
+    Vector albedo = material->albedo;
+    Vector diffuse_component, specular_component;
+    if (albedo[0]) {
+        std::tie(diffuse_component, specular_component)  = ComputeDiffusiveSpecular(scene, ray, intersection.value(), material->specular_exponent);
+    }
+    Vector phong_diff = material->diffuse_color * diffuse_component;
+    Vector phong_spec = material->specular_color * specular_component;
+    Vector reflection, refraction;
+    if (albedo[1] && refraction_index == 1) {
+        reflection = ComputeReflection(intersection.value(), ray, scene, depth - 1);
+    }
+    if (albedo[2]) {
+        refraction = ComputeRefraction(intersection.value(), ray, scene, refraction_index, material->refraction_index, depth - 1);
+    }
+
+    return material->ambient_color + material->intensity + phong_diff + phong_spec + reflection + refraction;
+
+}
+
 Vector ComputeColorNormal(const Ray& ray, const Scene& scene) {
     auto [intersection, material] = CheckIntersection(ray, scene);
     if (intersection == std::nullopt) {
@@ -123,44 +198,47 @@ Vector ComputeColorNormal(const Ray& ray, const Scene& scene) {
     return normal;
 }
 
-Vector ComputeColorFull(const Ray& ray, const Scene& scene, int depth) {
-    //  I_p = I_base_p + I_comp_p
-    //  I_base_p = K_a + K_e + al_0 * (Sum_{m \in lights} K_d * I_d(p, m) +
-    //  K_s * I_s (p, m)) , I_d and I_s are diffuse and specular parts
-    //  from Phong reflection model
-
-    auto [intersection, material] = CheckIntersection(ray, scene);
-    if (intersection == std::nullopt || material == nullptr) {
-        return {0, 0, 0};
-    }
-    Vector ambient_component = material->ambient_color;
-    Vector intensity = material->intensity;
-    Vector diffuse_component;
-    Vector specular_component;
-    for (auto light : scene.GetLights()) {
-        Vector ray_direction = light.position - intersection->GetPosition();
-        Ray light_ray{light.position, ray_direction};
-        if (CheckIntersection(light_ray, scene).first == std::nullopt) {
-            // Here we add the diffuse and specular components
-            // which depend on the angle of light
-            // don't forget to take the power of specular component
-            // and also add the intensivity of light
-            diffuse_component; 
-            specular_component;
+double FindMax(std::vector<std::vector<Vector>> templat, const Camera& camera) {
+    double max = 0;
+    
+    for (int y = 0; y < camera.screen_height_; ++y) {
+        for (int x = 0; x < camera.screen_width_; ++x) {
+            for (int i = 0; i < 3; ++i) {
+                if (max < templat[y][x][i]) {
+                    max = templat[y][x][i];
+                }
+            }
         }
     }
-    // Compute the reflection using recursion
-    Vector reflection = ComputeColorFull(reflected ray, scene, depth - 1);
-    //Compute refraction using recursion, if we are in the object, we might 
-    // want to use some indicator
-    // the same is related to providing the difference in the environment
-    // difference
-    Vector reflection = ComputeColorFull(reflected ray, scene, depth - 1);
-    // add a final formula in the endl
-
+    return max;
 }
 
+void DivideTemplat(std::vector<std::vector<Vector>>* templat, const Camera& camera, double max) {
+    for (int y = 0; y < camera.screen_height_; ++y) {
+        for (int x = 0; x < camera.screen_width_; ++x) {
+            Vector frac_above = (*templat)[y][x] * (1 + ((*templat)[y][x] / max * max));
+            Vector frace_below = (*templat)[y][x] + 1;
+            Vector out = frac_above / frace_below;
+            out[0] = std::pow(out[0], 1/2.2);
+            out[1] = std::pow(out[1], 1/2.2);
+            out[2] = std::pow(out[2], 1/2.2);
+            write_color(out);
+        }
+    }
+}
+
+// void PrintTemplat(const std::vector<std::vector<Vector>>& templat, const Camera& camera) {
+//     for (int y = 0; y < camera.screen_height_; ++y) {
+//         for (int x = 0; x < camera.screen_width_; ++x) {
+//             templat[y][x];
+//         }
+//     }
+// }
+
 void Render(const Camera& camera, const Scene& scene, const RenderOptions& render_options) {
+    std::vector<std::vector<Vector>> templat;
+
+    templat.resize(camera.screen_height_);
 
     for (int y = 0; y < camera.screen_height_; ++y) {
         for (int x = 0; x < camera.screen_width_; ++x) {
@@ -169,20 +247,21 @@ void Render(const Camera& camera, const Scene& scene, const RenderOptions& rende
             Vector pixel_color;
             switch (render_options.mode)
             {
-            // case RenderMode::kDepth :
-            //     pixel_values = ComputeColorDepth(ray, scene, &max_dist);
-            //     break;
-            case RenderMode::kNormal :
-                pixel_color = ComputeColorNormal(ray, scene);
-            case RenderMode::kFull :
-                pixel_color = ComputeColorFull(ray, scene, render_options.depth);
-            default:
-                break;
+                case RenderMode::kNormal :
+                    pixel_color = ComputeColorNormal(ray, scene);
+                    break;
+                case RenderMode::kFull :
+                    pixel_color = ComputeColorFull(ray, scene, render_options.depth, 1);
+                    templat[y].push_back(pixel_color);
+                    break;
+                default:
+                    break;
             }
-            write_color(pixel_color);
         }
-
     }
+    double max = FindMax(templat, camera);
+    DivideTemplat(&templat, camera, max);
+
 }
 
 
