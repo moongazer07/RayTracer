@@ -113,12 +113,12 @@ std::pair<std::optional<Intersection>, const Material*> CheckIntersection(const 
     return {intersection, material};
 }
 
-double ComputeDiffuse(const Vector& ray_direction, const Vector& normal) {
-    return DotProduct(ray_direction, normal);
+double ComputeDiffuse(const Vector& point_to_light, const Vector& normal) {
+    return DotProduct(point_to_light, normal) < 0 ? 0 : DotProduct(point_to_light, normal);
 }
 
-double ComputeSpecular(const Vector& ray_direction, const Vector& normal, const Vector& viewer_direction, int exponent) {
-    Vector reflection = UnitVector(Reflect(ray_direction, normal));
+double ComputeSpecular(const Vector& point_to_light, const Vector& normal, const Vector& viewer_direction, int exponent) {
+    Vector reflection = UnitVector(Reflect(-point_to_light, normal));
     double cos = DotProduct(reflection, -viewer_direction);
     if (cos < 0) {
         return 0;
@@ -146,15 +146,18 @@ Vector ComputeRefraction(const Intersection& intersection, const Ray& prev_ray, 
 
 std::pair<Vector, Vector> ComputeDiffusiveSpecular (const Scene& scene, const Ray& prev_ray, 
                                                     const Intersection& intersection, double specular_exp) {
-    Vector diffuse_component, specular_component, light_direction;
+    Vector diffuse_component, specular_component, point_to_light;
     Vector point_intersection = intersection.GetPosition();
     Vector normal = intersection.GetNormal();
     for (auto light : scene.GetLights()) {
-        light_direction = UnitVector(light.position - point_intersection);
-        if (!CheckIntersection({point_intersection, light_direction}, scene).first.has_value()) {
-            diffuse_component += light.intensity * ComputeDiffuse(light_direction, normal); 
-            specular_component += light.intensity * ComputeSpecular(light_direction, normal, 
-                                                                -prev_ray.GetDirection(), specular_exp);
+        point_to_light = light.position - point_intersection;
+        auto point_to_light_len = Length(point_to_light);
+        auto point_to_light_dir = UnitVector(point_to_light);
+        auto light_check = CheckIntersection({point_intersection, point_to_light_dir}, scene).first;
+        if (!light_check.has_value() || light_check->GetDistance() > point_to_light_len) {
+            diffuse_component += light.intensity * ComputeDiffuse(point_to_light, normal); 
+            specular_component += light.intensity * ComputeSpecular(point_to_light, normal, 
+                                                                prev_ray.GetDirection(), specular_exp);
         }
     }
     return {diffuse_component, specular_component};
@@ -182,9 +185,12 @@ Vector ComputeColorFull(const Ray& ray, const Scene& scene, int depth, double re
     if (albedo[2]) {
         refraction = ComputeRefraction(intersection.value(), ray, scene, refraction_index, material->refraction_index, depth - 1);
     }
-
-    return material->ambient_color + material->intensity + phong_diff + phong_spec + reflection + refraction;
-
+    // std::cout << "Material:" << material->name << "\n";
+    // std::cout << "reflection:";
+    // PrintVec(reflection);
+    // std::cout << "refraction:";
+    // PrintVec(refraction);
+    return material->ambient_color + material->intensity + albedo[0] * (phong_diff + phong_spec) + albedo[1] * reflection + albedo[2] * refraction;
 }
 
 Vector ComputeColorNormal(const Ray& ray, const Scene& scene) {
@@ -249,6 +255,7 @@ void Render(const Camera& camera, const Scene& scene, const RenderOptions& rende
             {
                 case RenderMode::kNormal :
                     pixel_color = ComputeColorNormal(ray, scene);
+                    templat[y].push_back(pixel_color);
                     break;
                 case RenderMode::kFull :
                     pixel_color = ComputeColorFull(ray, scene, render_options.depth, 1);
