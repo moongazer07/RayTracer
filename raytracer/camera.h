@@ -38,44 +38,61 @@
 double DegreesToRadians(double degrees);
 Vector ComputeColorFull(const Ray& ray, const Scene& scene, int depth, double refraction_index);
 
+struct CameraToWorld {
+    Vector right_;
+    Vector forward_;
+    Vector true_up_;
+    Vector look_from_;
+
+    CameraToWorld(const Vector& look_from, const Vector& look_to) 
+    : forward_(UnitVector(look_from - look_to))
+    , look_from_(look_from) {
+        auto epsilon = std::numeric_limits<float>::epsilon();
+        Vector up{0, 1, 0};
+
+        if (Length(CrossProduct(forward_, up)) < epsilon) {
+            up = {1, 0, 0};
+        }
+        right_ = CrossProduct(up, forward_);
+        true_up_ = CrossProduct(forward_, right_);
+    }
+};
+
 
 struct Camera {
+        size_t screen_width_;
+        size_t screen_height_;
+        double aspect_ratio_;
+        double scale_;
+        CameraToWorld camera_to_world_;
+        Vector new_look_from_;
+        int samles_per_pixel_{10};
+        double sample_per_pixel_scale_;
 
-        int screen_width_;
-        int screen_height_;
-        double fov_;
-        Vector look_from_;
-        Vector look_to_;
-        Vector vup_;
-        double view_port_height_;
-        double view_port_width_;
-        Vector view_port_horizontal_del_;
-        Vector view_port_vertical_del_;
-        Vector view_port_00_pixel_;
-
-        Camera(int screen_width, int screen_height, double fov, Vector look_from, Vector look_to) 
+        Camera (size_t screen_width, size_t screen_height, double fov, const Vector& look_from, const Vector& look_to) 
         : screen_width_(screen_width)
         , screen_height_(screen_height)
-        , fov_(fov) 
-        , look_from_(look_from)
-        , look_to_(look_to) {
-            double focal_length = Length(look_to_ - look_from_);
-            double theta = DegreesToRadians(fov_);
-            view_port_height_ = std::tan(theta/2) * focal_length * 2;
-            view_port_width_ = view_port_height_ * static_cast<double>(screen_width_)/screen_height_;
-            vup_ = Vector(0, 1, 0);
-            Vector w{UnitVector(look_from_ - look_to_)};
-            if (Length(CrossProduct(vup_, w)) < std::numeric_limits<float>::epsilon()) {
-                vup_ = Vector(1, 0, 0);
-            } 
-            Vector u{UnitVector(CrossProduct(w, vup_))};
-            Vector v{CrossProduct(u, w)};
-            Vector view_port_horizontal{view_port_width_ * u};
-            Vector view_port_vertical{view_port_height_ * -v};
-            view_port_horizontal_del_ = view_port_horizontal / screen_width_;
-            view_port_vertical_del_ = view_port_vertical / screen_height_;
-            Vector view_port_upperleft{look_from_ - (focal_length * w) - (view_port_horizontal + view_port_vertical) / 2.0};
-            view_port_00_pixel_ = view_port_upperleft + 0.5 * (view_port_vertical_del_ + view_port_horizontal_del_);
+        , aspect_ratio_(static_cast<double>(screen_width_) / screen_height_)
+        , scale_(std::tan(DegreesToRadians(fov / 2))) 
+        , camera_to_world_(look_from, look_to)
+        , new_look_from_(ApplyMatrix(look_from))
+        , sample_per_pixel_scale_(1.0 / samles_per_pixel_)
+        {};
+
+        Vector ApplyMatrix(const Vector& standart) const {
+            double x = camera_to_world_.right_[0] * standart[0] +
+                       camera_to_world_.right_[1] * standart[1] +
+                       camera_to_world_.right_[2] * standart[2];
+
+            double y = camera_to_world_.true_up_[0] * standart[0] +
+                       camera_to_world_.true_up_[1] * standart[1] +
+                       camera_to_world_.true_up_[2] * standart[2];
+
+            double z = camera_to_world_.forward_[0] * standart[0] +
+                       camera_to_world_.forward_[1] * standart[1] +
+                       camera_to_world_.forward_[2] * standart[2];
+
+            return {x, y, z}; 
         }
 };
 
@@ -185,11 +202,6 @@ Vector ComputeColorFull(const Ray& ray, const Scene& scene, int depth, double re
     if (albedo[2]) {
         refraction = ComputeRefraction(intersection.value(), ray, scene, refraction_index, material->refraction_index, depth - 1);
     }
-    // std::cout << "Material:" << material->name << "\n";
-    // std::cout << "reflection:";
-    // PrintVec(reflection);
-    // std::cout << "refraction:";
-    // PrintVec(refraction);
     return material->ambient_color + material->intensity + albedo[0] * (phong_diff + phong_spec) + albedo[1] * reflection + albedo[2] * refraction;
 }
 
@@ -207,8 +219,8 @@ Vector ComputeColorNormal(const Ray& ray, const Scene& scene) {
 double FindMax(std::vector<std::vector<Vector>> templat, const Camera& camera) {
     double max = 0;
     
-    for (int y = 0; y < camera.screen_height_; ++y) {
-        for (int x = 0; x < camera.screen_width_; ++x) {
+    for (size_t y = 0; y < camera.screen_height_; ++y) {
+        for (size_t x = 0; x < camera.screen_width_; ++x) {
             for (int i = 0; i < 3; ++i) {
                 if (max < templat[y][x][i]) {
                     max = templat[y][x][i];
@@ -220,11 +232,11 @@ double FindMax(std::vector<std::vector<Vector>> templat, const Camera& camera) {
 }
 
 void DivideTemplat(std::vector<std::vector<Vector>>* templat, const Camera& camera, double max) {
-    for (int y = 0; y < camera.screen_height_; ++y) {
-        for (int x = 0; x < camera.screen_width_; ++x) {
+    for (size_t y = 0; y < camera.screen_height_; ++y) {
+        for (size_t x = 0; x < camera.screen_width_; ++x) {
             Vector frac_above = (*templat)[y][x] * (1 + ((*templat)[y][x] / max * max));
-            Vector frace_below = (*templat)[y][x] + 1;
-            Vector out = frac_above / frace_below;
+            Vector frac_below = (*templat)[y][x] + 1;
+            Vector out = frac_above / frac_below;
             out[0] = std::pow(out[0], 1/2.2);
             out[1] = std::pow(out[1], 1/2.2);
             out[2] = std::pow(out[2], 1/2.2);
@@ -233,58 +245,40 @@ void DivideTemplat(std::vector<std::vector<Vector>>* templat, const Camera& came
     }
 }
 
-// void PrintTemplat(const std::vector<std::vector<Vector>>& templat, const Camera& camera) {
-//     for (int y = 0; y < camera.screen_height_; ++y) {
-//         for (int x = 0; x < camera.screen_width_; ++x) {
-//             templat[y][x];
-//         }
-//     }
-// }
-
-void Render(const Camera& camera, const Scene& scene, const RenderOptions& render_options) {
-    std::vector<std::vector<Vector>> templat;
-
-    templat.resize(camera.screen_height_);
-
-    for (int y = 0; y < camera.screen_height_; ++y) {
-        for (int x = 0; x < camera.screen_width_; ++x) {
-            auto pixel_center = camera.view_port_00_pixel_ + (camera.view_port_horizontal_del_ * x) + (camera.view_port_vertical_del_ * y);
-            Ray ray(camera.look_from_, pixel_center - camera.look_from_);
-            Vector pixel_color;
-            switch (render_options.mode)
-            {
-                case RenderMode::kNormal :
-                    pixel_color = ComputeColorNormal(ray, scene);
-                    templat[y].push_back(pixel_color);
-                    break;
-                case RenderMode::kFull :
-                    pixel_color = ComputeColorFull(ray, scene, render_options.depth, 1);
-                    templat[y].push_back(pixel_color);
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
-    double max = FindMax(templat, camera);
-    DivideTemplat(&templat, camera, max);
-
+Vector ComputeDirection(size_t i, size_t j, const Camera& camera) {
+    auto offset_x = random_double() - 0.5;
+    auto offset_y = random_double() - 0.5;
+    auto x = (2 * ((static_cast<double>(i) + 0.5 + offset_x) / static_cast<double>(camera.screen_width_)) - 1) * camera.aspect_ratio_ * camera.scale_;
+    auto y = (1 - 2 * ((static_cast<double>(j) + 0.5 + offset_y) /static_cast<double>(camera.screen_height_))) * camera.scale_;
+    // std::cout << "x " << x << " y " << y << "\n";
+    return UnitVector(camera.ApplyMatrix({x, y, -1}));
 }
 
+void Render(const Camera& camera, const Scene& scene, const RenderOptions& render_options) {
+    std::vector<std::vector<Vector>> image_buffer;
+    image_buffer.resize(camera.screen_height_);
 
-// Vector ComputeColorDepth(const Ray& ray, const Scene& scene, double* max_dist) {
-//     std::optional<Intersection> intersection = CheckIntersection(ray, scene);
-//     if (intersection = std::nullopt) {
-//         return {1, 1, 1};
-//     }
-
-//     double dist = intersection->GetDistance();
-//     if (dist > *max_dist) {
-//         *max_dist = intersection->GetDistance();
-//     }
-//     return {dist, dist, dist};
-// }
-
-// RGB ComputeColorFull(const Ray& ray, const Scene& scene, int depth) {
-
-// }
+    for (size_t j = 0; j < camera.screen_height_; ++j) {
+        for (size_t i = 0; i < camera.screen_width_; ++i) {
+            Vector color;
+            for (int sample = 0; sample < camera.samles_per_pixel_; ++sample) {
+                auto direction = ComputeDirection(i, j, camera); 
+                Ray ray(camera.new_look_from_, direction);
+                    switch (render_options.mode) {
+                        case RenderMode::kNormal :
+                            color += ComputeColorNormal(ray, scene);
+                            break;
+                        case RenderMode::kFull :
+                            color += ComputeColorFull(ray, scene, render_options.depth, 1);
+                            break;
+                        default:
+                            break;
+                    }
+            }
+            color /= camera.samles_per_pixel_;
+            image_buffer[j].push_back(color);
+        }
+    }
+    double max = FindMax(image_buffer, camera);
+    DivideTemplat(&image_buffer, camera, max);
+}

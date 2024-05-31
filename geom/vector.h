@@ -98,12 +98,30 @@ public:
 
     friend double Length(const Vector& vec);
 
+    friend double LengthSquared(const Vector& vec);
+
+
     void Normalize() {
         *this /= Length(*this);
     }
+
+    static double random_double();
+
+    static double random_double(double min, double max);
+
+    static Vector random_vector() {
+        return Vector(random_double(), random_double(), random_double());
+    }
+
+    static Vector random_vector(double min, double max) {
+        return Vector(random_double(min, max), random_double(min, max), random_double(min, max));
+    }
+
 private:
     std::array<double, 3> data_;
 };
+
+double DotProduct(const Vector& lhs, const Vector& rhs);
 
 Vector operator+ (const Vector& lhs, const Vector& rhs) {
     Vector tmp = lhs;
@@ -161,7 +179,34 @@ Vector operator/ (const Vector& lhs, double rhs) {
     return tmp;
 }
 
+inline double random_double() {
+    static std::uniform_real_distribution<double> dist(0.0, 1.0);
+    static std::mt19937 generator;
+    return dist(generator);
+}
 
+inline double random_double(double min, double max) {
+    return min + (max - min) * random_double();
+}
+
+inline Vector random_in_unit_sphere() {
+    while (true) {
+        auto p = Vector::random_vector(-1, 1);
+        if (LengthSquared(p) < 1) {
+            return p;
+        }
+    }
+}
+
+inline Vector random_in_hemisphere(const Vector& normal) {
+    Vector unit_sphere_vec = random_in_unit_sphere();
+    if (DotProduct(normal, unit_sphere_vec) > 0) {
+        return unit_sphere_vec;
+    } else {
+        return -unit_sphere_vec;
+    }
+}
+ 
 inline double DotProduct(const Vector& lhs, const Vector& rhs) {
     return lhs[0] * rhs[0] + lhs[1] * rhs[1] + lhs[2] * rhs[2];
 } 
@@ -175,6 +220,11 @@ inline Vector CrossProduct(const Vector& a, const Vector& b) {
 inline double Length(const Vector& vec) {
     return std::sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]);
 }
+
+inline double LengthSquared(const Vector& vec) {
+    return vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2];
+}
+
 
 Vector UnitVector(const Vector& vec) {
     Vector tmp = vec;
