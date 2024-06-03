@@ -7,6 +7,10 @@
 #include <algorithm>
 #include <cassert>
 
+static double RandomDouble();
+
+static double RandomDouble(double min, double max);
+
 class Vector {
 public:
     Vector() : Vector(0, 0, 0) {}
@@ -105,16 +109,12 @@ public:
         *this /= Length(*this);
     }
 
-    static double random_double();
-
-    static double random_double(double min, double max);
-
-    static Vector random_vector() {
-        return Vector(random_double(), random_double(), random_double());
+    static Vector RandomVector() {
+        return Vector(RandomDouble(), RandomDouble(), RandomDouble());
     }
 
-    static Vector random_vector(double min, double max) {
-        return Vector(random_double(min, max), random_double(min, max), random_double(min, max));
+    static Vector RandomVector(double min, double max) {
+        return Vector(RandomDouble(min, max), RandomDouble(min, max), RandomDouble(min, max));
     }
 
 private:
@@ -179,27 +179,41 @@ Vector operator/ (const Vector& lhs, double rhs) {
     return tmp;
 }
 
-inline double random_double() {
+inline double Length(const Vector& vec) {
+    return std::sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]);
+}
+
+inline double LengthSquared(const Vector& vec) {
+    return vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2];
+}
+
+Vector UnitVector(const Vector& vec) {
+    Vector tmp = vec;
+    tmp.Normalize();
+    return tmp;
+}
+
+inline double RandomDouble() {
     static std::uniform_real_distribution<double> dist(0.0, 1.0);
     static std::mt19937 generator;
     return dist(generator);
 }
 
-inline double random_double(double min, double max) {
-    return min + (max - min) * random_double();
+inline double RandomDouble(double min, double max) {
+    return min + (max - min) * RandomDouble();
 }
 
-inline Vector random_in_unit_sphere() {
+inline Vector RandomInUnitSphere() {
     while (true) {
-        auto p = Vector::random_vector(-1, 1);
+        auto p = Vector::RandomVector(-1, 1);
         if (LengthSquared(p) < 1) {
             return p;
         }
     }
 }
 
-inline Vector random_in_hemisphere(const Vector& normal) {
-    Vector unit_sphere_vec = random_in_unit_sphere();
+inline Vector RandomInHemisphere(const Vector& normal) {
+    Vector unit_sphere_vec = UnitVector(RandomInUnitSphere());
     if (DotProduct(normal, unit_sphere_vec) > 0) {
         return unit_sphere_vec;
     } else {
@@ -215,21 +229,6 @@ inline Vector CrossProduct(const Vector& a, const Vector& b) {
     return {a[1] * b[2] - a[2] * b[1], 
             a[2] * b[0] - a[0] * b[2], 
             a[0] * b[1] - a[1] * b[0]};
-}
-
-inline double Length(const Vector& vec) {
-    return std::sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]);
-}
-
-inline double LengthSquared(const Vector& vec) {
-    return vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2];
-}
-
-
-Vector UnitVector(const Vector& vec) {
-    Vector tmp = vec;
-    tmp.Normalize();
-    return tmp;
 }
 
 void PrintVec(const Vector& vec) {

@@ -28,7 +28,7 @@ std::optional<Intersection> GetIntersection(const Ray& ray, const Sphere& sphere
 
     double t1c = std::sqrt(rad_2 - d);
     double t1 = std::abs(tc - t1c);
-    if (t1 < 0.01) {
+    if (t1 < 0.001) {
         return std::nullopt;
     }
     Vector IntersectionPoint = ray.at(t1);
@@ -63,7 +63,7 @@ std::optional<Intersection> GetIntersection(const Ray& ray, const Triangle& tria
     } 
     double denominator = det3x3(-ray.GetDirection(), vec_u, vec_v);
     double t = det3x3(constant_terms, vec_u, vec_v) / denominator;
-    if (t < epsilon) {
+    if (t < 0.001) {
         return std::nullopt;
     }
     double beta = det3x3(-ray.GetDirection(), constant_terms, vec_v) / denominator;
@@ -79,20 +79,21 @@ std::optional<Intersection> GetIntersection(const Ray& ray, const Triangle& tria
     return std::make_optional(Intersection(IntersectionPoint, normal, distance));
 }
 
+Vector Reflect(const Vector& ray, const Vector& normal) {
+    return ray - 2 * DotProduct(ray, normal) * normal;
+}
+
 std::optional<Vector> Refract(const Vector& ray, const Vector& normal, double eta) {
     double cos_theta_i = DotProduct(-ray, normal);
     double cos_theta_T_2 = 1 - eta * eta * (1 - cos_theta_i * cos_theta_i);
     
     if (cos_theta_T_2 < 0) {
-        return std::nullopt;
+        return std::make_optional(Reflect(ray, normal));
     }
     return (cos_theta_i * eta - std::sqrt(cos_theta_T_2)) * normal + ray * eta;
 
 }
 
-Vector Reflect(const Vector& ray, const Vector& normal) {
-    return ray - 2 * DotProduct(ray, normal) * normal;
-}
 
 Vector GetBarycentricCoords(const Triangle& triangle, const Vector& point) {
     double area = triangle.Area();

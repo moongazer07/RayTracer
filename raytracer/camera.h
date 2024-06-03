@@ -53,8 +53,8 @@ struct CameraToWorld {
         if (Length(CrossProduct(forward_, up)) < epsilon) {
             up = {1, 0, 0};
         }
-        right_ = CrossProduct(up, forward_);
-        true_up_ = CrossProduct(forward_, right_);
+        right_ = UnitVector(CrossProduct(up, forward_));
+        true_up_ = UnitVector(CrossProduct(forward_, right_));
     }
 };
 
@@ -66,7 +66,7 @@ struct Camera {
         double scale_;
         CameraToWorld camera_to_world_;
         Vector new_look_from_;
-        int samles_per_pixel_{10};
+        int samples_per_pixel_{1};
         double sample_per_pixel_scale_;
 
         Camera (size_t screen_width, size_t screen_height, double fov, const Vector& look_from, const Vector& look_to) 
@@ -75,21 +75,20 @@ struct Camera {
         , aspect_ratio_(static_cast<double>(screen_width_) / screen_height_)
         , scale_(std::tan(DegreesToRadians(fov / 2))) 
         , camera_to_world_(look_from, look_to)
-        , new_look_from_(ApplyMatrix(look_from))
-        , sample_per_pixel_scale_(1.0 / samles_per_pixel_)
+        , new_look_from_(look_from)
         {};
 
         Vector ApplyMatrix(const Vector& standart) const {
             double x = camera_to_world_.right_[0] * standart[0] +
-                       camera_to_world_.right_[1] * standart[1] +
-                       camera_to_world_.right_[2] * standart[2];
+                       camera_to_world_.true_up_[0] * standart[1] +
+                       camera_to_world_.forward_[0] * standart[2];
 
-            double y = camera_to_world_.true_up_[0] * standart[0] +
+            double y = camera_to_world_.right_[1] * standart[0] +
                        camera_to_world_.true_up_[1] * standart[1] +
-                       camera_to_world_.true_up_[2] * standart[2];
+                       camera_to_world_.forward_[1] * standart[2];
 
-            double z = camera_to_world_.forward_[0] * standart[0] +
-                       camera_to_world_.forward_[1] * standart[1] +
+            double z = camera_to_world_.right_[2] * standart[0] +
+                       camera_to_world_.true_up_[2] * standart[1] +
                        camera_to_world_.forward_[2] * standart[2];
 
             return {x, y, z}; 
@@ -137,7 +136,7 @@ double ComputeDiffuse(const Vector& point_to_light, const Vector& normal) {
 double ComputeSpecular(const Vector& point_to_light, const Vector& normal, const Vector& viewer_direction, int exponent) {
     Vector reflection = UnitVector(Reflect(-point_to_light, normal));
     double cos = DotProduct(reflection, -viewer_direction);
-    if (cos < 0) {
+    if (cos <= 0) {
         return 0;
     }
     return std::pow(cos, exponent);
@@ -212,7 +211,6 @@ Vector ComputeColorNormal(const Ray& ray, const Scene& scene) {
     }
     Vector normal = intersection->GetNormal();
     normal = normal * 0.5 + 0.5;
-
     return normal;
 }
 
@@ -228,7 +226,7 @@ double FindMax(std::vector<std::vector<Vector>> templat, const Camera& camera) {
             }
         }
     }
-    return max;
+    return max != 0 ? max : 1;
 }
 
 void DivideTemplat(std::vector<std::vector<Vector>>* templat, const Camera& camera, double max) {
@@ -246,23 +244,23 @@ void DivideTemplat(std::vector<std::vector<Vector>>* templat, const Camera& came
 }
 
 Vector ComputeDirection(size_t i, size_t j, const Camera& camera) {
-    auto offset_x = random_double() - 0.5;
-    auto offset_y = random_double() - 0.5;
+    // auto offset_x = RandomDouble() - 0.5;
+    // auto offset_y = RandomDouble() - 0.5;
+    auto offset_x = 0;
+    auto offset_y = 0;
     auto x = (2 * ((static_cast<double>(i) + 0.5 + offset_x) / static_cast<double>(camera.screen_width_)) - 1) * camera.aspect_ratio_ * camera.scale_;
     auto y = (1 - 2 * ((static_cast<double>(j) + 0.5 + offset_y) /static_cast<double>(camera.screen_height_))) * camera.scale_;
-    // std::cout << "x " << x << " y " << y << "\n";
     return UnitVector(camera.ApplyMatrix({x, y, -1}));
 }
 
 void Render(const Camera& camera, const Scene& scene, const RenderOptions& render_options) {
     std::vector<std::vector<Vector>> image_buffer;
     image_buffer.resize(camera.screen_height_);
-
     for (size_t j = 0; j < camera.screen_height_; ++j) {
         for (size_t i = 0; i < camera.screen_width_; ++i) {
             Vector color;
-            for (int sample = 0; sample < camera.samles_per_pixel_; ++sample) {
-                auto direction = ComputeDirection(i, j, camera); 
+            for (int sample = 0; sample < camera.samples_per_pixel_; ++sample) {
+                auto direction = ComputeDirection(i, j, camera);
                 Ray ray(camera.new_look_from_, direction);
                     switch (render_options.mode) {
                         case RenderMode::kNormal :
@@ -275,7 +273,7 @@ void Render(const Camera& camera, const Scene& scene, const RenderOptions& rende
                             break;
                     }
             }
-            color /= camera.samles_per_pixel_;
+            color /= camera.samples_per_pixel_;
             image_buffer[j].push_back(color);
         }
     }
