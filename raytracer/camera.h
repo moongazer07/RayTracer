@@ -66,7 +66,7 @@ struct Camera {
         double scale_;
         CameraToWorld camera_to_world_;
         Vector new_look_from_;
-        int samples_per_pixel_{1};
+        int samples_per_pixel_{10};
         double sample_per_pixel_scale_;
 
         Camera (size_t screen_width, size_t screen_height, double fov, const Vector& look_from, const Vector& look_to) 
@@ -244,10 +244,8 @@ void DivideTemplat(std::vector<std::vector<Vector>>* templat, const Camera& came
 }
 
 Vector ComputeDirection(size_t i, size_t j, const Camera& camera) {
-    // auto offset_x = RandomDouble() - 0.5;
-    // auto offset_y = RandomDouble() - 0.5;
-    auto offset_x = 0;
-    auto offset_y = 0;
+    auto offset_x = RandomDouble() - 0.5;
+    auto offset_y = RandomDouble() - 0.5;
     auto x = (2 * ((static_cast<double>(i) + 0.5 + offset_x) / static_cast<double>(camera.screen_width_)) - 1) * camera.aspect_ratio_ * camera.scale_;
     auto y = (1 - 2 * ((static_cast<double>(j) + 0.5 + offset_y) /static_cast<double>(camera.screen_height_))) * camera.scale_;
     return UnitVector(camera.ApplyMatrix({x, y, -1}));

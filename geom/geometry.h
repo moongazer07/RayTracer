@@ -63,7 +63,7 @@ std::optional<Intersection> GetIntersection(const Ray& ray, const Triangle& tria
     } 
     double denominator = det3x3(-ray.GetDirection(), vec_u, vec_v);
     double t = det3x3(constant_terms, vec_u, vec_v) / denominator;
-    if (t < 0.001) {
+    if (t < epsilon) {
         return std::nullopt;
     }
     double beta = det3x3(-ray.GetDirection(), constant_terms, vec_v) / denominator;
