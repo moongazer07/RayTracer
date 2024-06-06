@@ -22,6 +22,8 @@ public:
         std::copy(list.begin(), list.end(), data_.begin());
     }
 
+    Vector(double x) : Vector(x, x, x) {}
+
     Vector(std::array<double, 3> data) : data_(data) {}
 
     double& operator[](size_t ind) {

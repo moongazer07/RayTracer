@@ -15,15 +15,34 @@ First, let us write the general idea:
     
     How to compute a box? 
 
+    Create a structure Box, 
+    that will keep two vectors:
+    bottom left nearest point
+    top right furthers point
+
+    Create a methods for it: 
+    
+    update the box, which will take
+    min and max points and then update the values
+    Primarily the vlues inside let be equal to inf
+
+    find the box (triangle)
+
+    build the box (sphere)
+
+    build the box (node)
+
+
+
     We have three normals { (1, 0, 0) -- normal for y, z axis plane 
                             (0, 1, 0) -- normal for x, z axis plane
                             (0, 0, 1) -- normal for x, y axis plane
-                            }
+                           }
 
         Triangle:
 
             we want to find the distance for every point, 
-    h       how far is it from the origin of the coordinates. 
+            how far is it from the origin of the coordinates. 
 
     Say if we want to find the distance from the point projection on
     the plane (Y,Z), we have to use (1,0,0) normal
@@ -144,9 +163,85 @@ First, let us write the general idea:
 
         call Intersect(ray, tree->root);
 
+        i. Compute wheather the ray intersects the root box
+
+        ii. if it does:: create a queue and put a node there
+
+        iii. Then we shall operate until the queue is empty
+
+        iv. while (!queue.empty()) 
+
+            Take the node
+
+            Pop it from the queue
+
+            if (is leaf)
+
+                Check for all the objects wheather they are intersected (can use 
+                the original function for finding intersection)
+
+                Record the smallest distance from there
+
+                This distance will be used in order to check the intersection with other nodes,
+                i.e. if the distance to the node is smaller than the distance to the object --
+                you don't have to count the distance to the objects in the node
+
+            else 
+
+                i.e. if it is not a leaf:
+
+                - go through the children if this node
+                - compute the distance to each of them
+                - if the distance is smaller than the smallest distance so far --
+                add the node to the qeueu
+
+        By the end of this process you will have the result of intersection stored (or not)
+        So you can compute the color. 
+
+
+    We also need a function to compute the distance to the nodes:
+
+        IntersectBox(ray, node, tNear, tFar) 
+
+        -- observe that we need tNear, tFar in order to update them in case we find larger
+        tn and smaller tf
+
+
+            For every ray there is precomputed numerator and denominator: 
+                -   numerator = Normal \dot Origin
+                -   denominator = normal \dot Ray
+
+            We need them in order to compute the distance towards the volume
+
+                We have Dnear, Dfar which represent the nearest and furtherest
+                projection for the element.
+
+                Using the Dnear and Dfar we can find the distance from the ray
+                to the plane with the corresponding normal.
+
+                Taking the largest tNear we will obtain the nearest distance, and
+                taking the smallest tFar we will obtain the furthest distance
+
+                Having these distances we will be able to order the boxes in the priority queue
+                using min heap operator
+
+                Cases to look after:
+
+                    If denominator < 0 => swap tf and tn
+                    If tn > tNear -- update tNear
+                    if tf < tFar -- update tFar
+                    if (tNear > tFar) return false
+
+                return true 
+
         We will use the priority queue to order nodes on the tree
         for checking with the ray intersection
-
         
+        Questions:
+
+        how do we use tNear, tFar? 
+        how do we update the distance towards the new box?
+        how do we update the distance towards the new object and is it correlated with the distance to
+        boxes?
 
             
