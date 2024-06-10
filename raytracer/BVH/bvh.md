@@ -104,7 +104,7 @@ First, let us write the general idea:
                 - If the node is a leaf
                 - If the node has any other objects
                 - If the node is on max depth of the tree
-                - Wheather the box of the object intersects the nodes' box
+                - Where is the centroid of object and centroid of parent
 
             if (node is leaf) 
 
