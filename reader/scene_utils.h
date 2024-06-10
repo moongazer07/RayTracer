@@ -97,6 +97,8 @@ std::array<int, 3> GetIndex(std::string str_vrtx_indx, std::array<size_t, 3> siz
             indexes[ind] = std::stoi(splitted_by_bar[ind]);
             if (indexes[ind] < 0) {
                 indexes[ind] = sizes[ind] + indexes[ind];
+            } else {
+                --indexes[ind];
             }
         }
     }
