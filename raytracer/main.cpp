@@ -7,7 +7,8 @@
 // And the second step is rendering itself
 
 int main () {
-    std::string name_of_file = "/home/kkopnev/Documents/RayTracer/raytracer/tests/one_sphere.obj";
+    // std::string name_of_file = "/home/kkopnev/Documents/RayTracer/raytracer/tests/one_sphere.obj";
+    std::string name_of_file = "C:/Users/kerel/my_code/C++/RayTracer/raytracer/tests/one_sphere.obj";
 
     size_t image_width = 640;
     size_t image_height = 480;
@@ -17,8 +18,8 @@ int main () {
     //     element->PrintPrivateMembers();
     // }
     BVH bvh = BVH(scene);
-    PrintNode(bvh.GetRoot());
-    // Camera camera{image_width, image_height, 90, {-0.9, 1.9, -1}, {0.0, 0.0, 0}};
-    // RenderOptions options{3, RenderMode::kFull};
-    // Render(camera, scene, options);
+    // PrintNode(bvh.GetRoot());
+    Camera camera{image_width, image_height, 90, {-0.9, 1.9, -1}, {0.0, 0.0, 0}};
+    RenderOptions options{3, RenderMode::kNormal};
+    Render(camera, bvh, options);
 }

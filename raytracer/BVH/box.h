@@ -6,8 +6,8 @@ struct Box {
 
     public:
 
-    Box() : bottom_(Vector(std::numeric_limits<double>::min()))
-          , top_(Vector(std::numeric_limits<double>::max()))
+    Box() : bottom_(Vector(-std::numeric_limits<double>::infinity()))
+          , top_(Vector(std::numeric_limits<double>::infinity()))
           {}
 
     Box(const Vector& bottom, const Vector& top) {
@@ -106,19 +106,37 @@ struct Box {
 
 }; 
 
-// std::optional<std::pair<double, double>> IntersectBox(const Ray& ray, const Box& box) {
-    // Ray_coord = 1 / Ray_dir
-    // tNear == max of mins
-    // tFar == min of maxs
-    // for every index 0 .. 2
-    //  compute t0 and t1
-    //  if (Ray_dir[i] == 0 && Orig[i] < bottom_[i] || top_[i] < Orig[0])
-    //            no intersection
-    //  t0 = (coordinate_min - Orig_coord) * Ray_coord
-    //  t1 = (coordinate_max - Orig_coord) * Ray_coord
-    //  if t1 < t0 :: swap(t0, t1) -- in case ray coord was negative
-    //  if tNear > t1 || tFar < t0 : return std::null_opt
-    //  if t0 > tNear : tNear = t0
-    //  if t1 < tFar : tFar = t1
-    // if t_end < t_start => no intersection
-// }
+std::optional<std::pair<double, double>> IntersectBox(const Ray& ray, const Box& box) {
+    Vector ray_direction = ray.GetDirection();
+    Vector ray_origin = ray.GetOrigin();
+    Vector bottom = box.GetBot();
+    Vector top = box.GetTop();
+    Vector denominator{1/ray_direction[0], 1/ray_direction[1], 1/ray_direction[2]};
+    double tNear = -std::numeric_limits<double>::infinity();
+    double tFurther = std::numeric_limits<double>::infinity();
+    double t0 = 0;
+    double t1 = 0;
+    for (size_t ind = 0; ind < 3; ++ind) {
+        if (ray_direction[ind] == 0 && ray_origin[ind] < box.GetBot()[ind] || box.GetTop()[ind] < ray_origin[ind]){
+            return std::nullopt;
+        }
+        t0 = (bottom[ind] - ray_origin[ind]) * denominator[ind];
+        t1 = (top[ind] - ray_origin[ind]) * denominator[ind];
+        if (t1 < t0) {
+            std::swap(t0, t1);  //in case ray coord was negative
+        }
+        if (tNear > t1 || tFurther < t0) {
+            return std::nullopt;
+        }
+        if (tNear < t0) {
+            tNear = t0;
+        }
+        if (t1 < tFurther) {
+             tFar = t1;
+        }
+        if (tNear > tFurther) {
+            return std::nullopt;
+        }
+    }
+    return std::make_optional(std::make_pair(tNear, tFurther));
+}

@@ -177,7 +177,7 @@ inline std::map<std::string, Material> ReadMaterials(const std::string& file_nam
 
 std::string GetPath(std::string path) {
     std::vector<std::string> splitted = Split(path, '/');
-    std::string retreived_path = "/";
+    std::string retreived_path = "";
 
     for (size_t ind = 0; ind < splitted.size() - 1; ++ind) {
         retreived_path += splitted[ind] + "/";

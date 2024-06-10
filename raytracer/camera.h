@@ -66,7 +66,7 @@ struct Camera {
         double scale_;
         CameraToWorld camera_to_world_;
         Vector new_look_from_;
-        int samples_per_pixel_{5};
+        int samples_per_pixel_{1};
         double sample_per_pixel_scale_;
 
         Camera (size_t screen_width, size_t screen_height, double fov, const Vector& look_from, const Vector& look_to) 
@@ -207,6 +207,50 @@ Vector ComputeColorNormal(const Ray& ray, const Scene& scene) {
     return normal;
 }
 
+Vector ComputeColorFull(const Ray& ray, const BVH& bvh, int depth, double refraction_index) {
+    if (depth < 1) {
+        return {0, 0, 0};
+    }
+    auto [intersection, material] = bvh.CheckIntesection(ray);
+    if (!intersection.has_value() || material == nullptr) {
+        return {0, 0, 0};
+    }
+    Vector albedo = material->albedo;
+    Vector diffuse_component, specular_component;
+    if (albedo[0]) {
+        std::tie(diffuse_component, specular_component)  = ComputeDiffusiveSpecular(scene, ray, intersection.value(), material->specular_exponent);
+    }
+    Vector phong_diff = material->diffuse_color * diffuse_component;
+    Vector phong_spec = material->specular_color * specular_component;
+    Vector reflection, refraction;
+    if (albedo[1] && refraction_index == 1) {
+        reflection = ComputeReflection(intersection.value(), ray, scene, depth - 1);
+    }
+    if (albedo[2]) {
+        refraction = ComputeRefraction(intersection.value(), ray, scene, refraction_index, material->refraction_index, depth - 1);
+    }
+    return material->ambient_color + material->intensity + albedo[0] * (phong_diff + phong_spec) + albedo[1] * reflection + albedo[2] * refraction;
+}
+
+Vector ComputeColorNormal(const Ray& ray, const BVH& bvh) {
+    auto [intersection, material] = bvh.Intersect(ray);
+    if (intersection == std::nullopt) {
+        return {0, 0, 0};
+    }
+    Vector normal = intersection->GetNormal();
+    normal = normal * 0.5 + 0.5;
+    return normal;
+}
+
+Vector ComputeColorDistance(const Ray& ray, const BVH& bvh) {
+    auto [intersection, material] = bvh.Intersect(ray);
+    if (intersection == std::nullopt) {
+        return {0, 0, 0};
+    }
+    Vector distance{intersection->GetDistance()};
+    return distance;
+}
+
 double FindMax(std::vector<std::vector<Vector>> templat, const Camera& camera) {
     double max = 0;
     
@@ -237,11 +281,44 @@ void DivideTemplat(std::vector<std::vector<Vector>>* templat, const Camera& came
 }
 
 Vector ComputeDirection(size_t i, size_t j, const Camera& camera) {
-    auto offset_x = RandomDouble() - 0.5;
-    auto offset_y = RandomDouble() - 0.5;
+    // auto offset_x = RandomDouble() - 0.5;
+    // auto offset_y = RandomDouble() - 0.5;
+    auto offset_x = 0;
+    auto offset_y = 0;
     auto x = (2 * ((static_cast<double>(i) + 0.5 + offset_x) / static_cast<double>(camera.screen_width_)) - 1) * camera.aspect_ratio_ * camera.scale_;
     auto y = (1 - 2 * ((static_cast<double>(j) + 0.5 + offset_y) /static_cast<double>(camera.screen_height_))) * camera.scale_;
     return UnitVector(camera.ApplyMatrix({x, y, -1}));
+}
+
+void Render(const Camera& camera, const Scene& bvh, const RenderOptions& render_options) {
+    std::vector<std::vector<Vector>> image_buffer;
+    image_buffer.resize(camera.screen_height_);
+    for (size_t j = 0; j < camera.screen_height_; ++j) {
+        for (size_t i = 0; i < camera.screen_width_; ++i) {
+            Vector color;
+            for (int sample = 0; sample < camera.samples_per_pixel_; ++sample) {
+                auto direction = ComputeDirection(i, j, camera);
+                Ray ray(camera.new_look_from_, direction);
+                    switch (render_options.mode) {
+                        case RenderMode::kDist :
+                            color += ComputeColorDistance(ray, bvh);
+                            break;
+                        case RenderMode::kNormal :
+                            color += ComputeColorNormal(ray, bvh);
+                            break;
+                        case RenderMode::kFull :
+                            color += ComputeColorFull(ray, bvh, render_options.depth, 1);
+                            break;
+                        default:
+                            break;
+                    }
+            }
+            color *= camera.sample_per_pixel_scale_;
+            image_buffer[j].push_back(color);
+        }
+    }
+    double max = FindMax(image_buffer, camera);
+    DivideTemplat(&image_buffer, camera, max);
 }
 
 void Render(const Camera& camera, const Scene& scene, const RenderOptions& render_options) {
