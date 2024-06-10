@@ -23,6 +23,10 @@ public:
         return Objects_;
     }
 
+    std::vector<std::unique_ptr<Object>>& GetNonConstObjects() {
+        return Objects_;
+    }
+
     const std::vector<Light>& GetLights() const {
         return Lights_;
     }
@@ -100,7 +104,7 @@ std::array<Vector, 3> FillVertex(Scene* scene, const std::array<int, 3>& index) 
     return vertex;
 }
 
-void RetreiveFaces(const std::vector<std::string>& splitted, const Material* material, Scene* scene, int begin) {
+void RetreiveFaces(const std::vector<std::string>& splitted, const std::string& material, Scene* scene, int begin) {
     std::array<Vector, 3> initial;
     std::array<Vector, 3> second;
     std::array<Vector, 3> third;
@@ -125,7 +129,7 @@ void RetreiveFaces(const std::vector<std::string>& splitted, const Material* mat
             ++retreived_vrtx;
         } 
         if (retreived_vrtx == 3) {
-            scene->AddFaceObject({material, initial, second, third});
+            scene->AddFaceObject({scene->GetMaterials().at(material), initial, second, third});
             second = third;
             retreived_vrtx = 2;
         }
@@ -192,7 +196,7 @@ inline Scene ReadScene(const std::string& file_name) {
     std::string path = GetPath(file_name);
     std::string line;
     Scene scene;
-    const Material* current_material = nullptr;
+    std::string current_material;
     size_t ind = 0;
 
     while(std::getline(obj_file, line)) {
@@ -209,13 +213,13 @@ inline Scene ReadScene(const std::string& file_name) {
         } else if (splitted[ind] == "vn") {
             scene.AddVectorNormal(RetreiveVector(splitted, &ind));
         } else if (splitted[ind] == "S") {
-            scene.AddSphereObject({current_material, RetreiveSphere(splitted, &ind)});
+            scene.AddSphereObject({scene.GetMaterials().at(current_material), RetreiveSphere(splitted, &ind)});
         } else if (splitted[ind] == "P") {
             scene.AddLight(RetreiveLight(splitted, &ind));
         } else if (splitted[ind] == "f") {
             RetreiveFaces(splitted, current_material, &scene, ind);
         } else if (splitted[ind] == "usemtl") {
-                current_material = &scene.GetMaterials().at(splitted[FindNonEmpty(splitted, ind)]);
+                current_material = splitted[FindNonEmpty(splitted, ind)];
         } else if (splitted[ind] == "mtllib") {
             scene.SetMaterials(ReadMaterials(path + splitted[FindNonEmpty(splitted, ind)]));
         } 

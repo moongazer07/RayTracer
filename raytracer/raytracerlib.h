@@ -4,6 +4,7 @@
 #include <array>
 #include <cmath>
 #include <random>
+#include <algorithm>
 #include "render_options.h"
 #include "../geom/geometry.h"
 #include "../reader/scene.h"

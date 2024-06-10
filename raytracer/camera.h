@@ -66,7 +66,7 @@ struct Camera {
         double scale_;
         CameraToWorld camera_to_world_;
         Vector new_look_from_;
-        int samples_per_pixel_{10};
+        int samples_per_pixel_{5};
         double sample_per_pixel_scale_;
 
         Camera (size_t screen_width, size_t screen_height, double fov, const Vector& look_from, const Vector& look_to) 
@@ -76,6 +76,7 @@ struct Camera {
         , scale_(std::tan(DegreesToRadians(fov / 2))) 
         , camera_to_world_(look_from, look_to)
         , new_look_from_(look_from)
+        , sample_per_pixel_scale_(1/samples_per_pixel_)
         {};
 
         Vector ApplyMatrix(const Vector& standart) const {
@@ -106,9 +107,9 @@ void write_color(const Vector& pixel_color) {
     std::cout << r << ' ' << g << ' ' << b << '\n';
 }
 
-std::pair<std::optional<Intersection>, const Material*> CheckIntersection(const Ray& ray, const Scene& scene) {
+std::pair<std::optional<Intersection>, std::shared_ptr<Material>> CheckIntersection(const Ray& ray, const Scene& scene) {
     double dist = std::numeric_limits<double>::max();
-    const Material* material = nullptr;
+    std::shared_ptr<Material> material = nullptr;
     std::optional<Intersection> result_intersection = std::nullopt;
     for (const auto& object : scene.GetObjects()) {
         auto intersection = object->GetIntersection(ray);
@@ -263,7 +264,7 @@ void Render(const Camera& camera, const Scene& scene, const RenderOptions& rende
                             break;
                     }
             }
-            color /= camera.samples_per_pixel_;
+            color *= camera.sample_per_pixel_scale_;
             image_buffer[j].push_back(color);
         }
     }

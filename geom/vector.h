@@ -15,6 +15,10 @@ class Vector {
 public:
     Vector() : Vector(0, 0, 0) {}
 
+    Vector(const Vector& other) {
+        data_ = other.data_;
+    }
+
     Vector(double x, double y, double z) : Vector({x, y, z}) {}
 
     Vector(std::initializer_list<double> list) {
@@ -25,6 +29,11 @@ public:
     Vector(double x) : Vector(x, x, x) {}
 
     Vector(std::array<double, 3> data) : data_(data) {}
+
+    Vector& operator=(const Vector& other) {
+        data_ = other.data_;
+        return *this;
+    }
 
     double& operator[](size_t ind) {
         return data_[ind];

@@ -1,112 +1,125 @@
 
+#include <memory>
 #include "box.h"
 
 struct OctNode {
 
     bool is_leaf_;
-    std::array<OctNode*, 8> children_;
-    // std::vector<Object> data;
+    std::array<std::unique_ptr<OctNode>, 8> children_;
+    std::vector<std::unique_ptr<Object>> data_;
     size_t depth_of_node_;
+    u_int8_t index_;
     Box box_;
 
-    OctNode(const Box& box) : leaf_(true) 
+    OctNode() = default;
+
+    OctNode(const Box& box) : is_leaf_(true) 
                             , box_(box)
-    {
-        for (auto elem : children_) {
-            elem = nullptr;
-        }
-    }
-
-    OctNode(const uint8_t index, const Box& parentBox) : leaf_(true) {
-        for (auto elem : children_) {
-            elem = nullptr;
-        }
-        Vector top(parentBox.centroid_);
-        Vector bot(parentBox.centroid_);
-        // index & 4 ? top[2] = parentBox.top_[2] : bot[2] = parentBox.bot_[2];
-        // index & 2 ? top[1] = parentBox.top_[1] : bot[1] = parentBox.bot_[1];
-        // index & 1 ? top[0] = parentBox.top[0] : bot[0] = parentBox.bot[0]; 
-        // box_ = Box(top, bot);  
-        // }
-
-        }
-        // mid_mid
-        // depending on the index
-        // we will provide the bounds for the
-        // Box
-    }
-
-    ~OctNode() {
-        for (auto elem : children_) {
-            if (elem != nullptr) {
-                delete elem;
-            }
-        }
-    }
-
-};
-
- struct OctQueue {
-
-    const OctNode& OctNode_;
-    double t_;
-
-    OctQueue(const OctNode& node, double t) : OctNode(node)
-                                            , t_(t)
     {}
 
-    bool operator < (const OctQueue& rhs) {
-        return t_ < rhs.t_;
-    }
+    // OctNode(const OctNode&& other)
+    //     : is_leaf_(other.is_leaf_)
+    //     , children_(std::move(other.children_))
+    //     , data_(std::move(other.data_))
+    //     , depth_of_node_(other.depth_of_node_)
+    //     , index_(other.index_)
+    //     , box_(std::move(other.box_)) {}
 
- }
+    OctNode(const uint8_t index, const Box& parentBox, size_t depth)
+    : is_leaf_(true)
+    , depth_of_node_(depth) 
+    , index_(index) {
+        Vector top(parentBox.GetCentroid());
+        Vector bot(parentBox.GetCentroid());
+        index & 4 ? top[2] = parentBox.GetTop()[2] : bot[2] = parentBox.GetBot()[2];
+        index & 2 ? top[1] = parentBox.GetTop()[1] : bot[1] = parentBox.GetBot()[1];
+        index & 1 ? top[0] = parentBox.GetTop()[0] : bot[0] = parentBox.GetBot()[0]; 
+        box_ = Box(top, bot);  
+        }
+
+    ~OctNode() {}
+};
+
+//  struct OctQueue {
+
+//     const OctNode OctNode_;
+//     double t_;
+
+//     OctQueue(const OctNode& node, double t) : OctNode(node)
+//                                             , t_(t)
+//     {}
+
+//     bool operator < (const OctQueue& rhs) {
+//         return t_ < rhs.t_;
+//     }
+
+//  };
 
 class BVH {
 
     public:
 
-    BVH(const Box& scene_box) : root_(new OctNode(scene_box)) 
+    BVH(Scene& scene) 
     {
-        // Octree* octree = new Octree(scene.box);
-        // for every object in the scene
-        //      octree->insert(object);
-        // RecomputeBounds(octree->root);
+        if (scene.GetNonConstObjects().empty()) {
+            std::cerr << "No objects in the scene" << std::endl;
+            return ;
+        }
+        Box scene_box = scene.GetObjects()[0]->GetBox();
+        root_ = std::make_unique<OctNode>(scene_box);
+        for(auto& object : scene.GetObjects()) {
+            scene_box.ExtendBox(object->GetBox());
+        }
+        
+        for(auto& object : scene.GetNonConstObjects()) {
+            InsertObject(root_, object, 0);
+        }
+        RecomputeBounds(root_);
     }
 
-    void InsertObject(const OctNode& node, const Object& object, size_t depth) {
-        
-        if (node.is_leaf) {
-            // if (node.data_.empty() || depth = depth_) {
-            //      node.data_.push_back(object);
-            // } else {
-            //      node.is_leaf_ = false;
-            //      for (auto elem : node.data_) {
-            //          insert(node, elem, depth)
-            //      insert(node, object, depth) 
+    const std::unique_ptr<OctNode>& GetRoot() const {
+        return root_;
+    }
+
+    void InsertObject(std::unique_ptr<OctNode>& node, std::unique_ptr<Object>& object, size_t depth) {
+        if (depth > depth_) {
+            return ;
+        }
+        if (node->is_leaf_) {
+            if (node->data_.empty() || depth == depth_) {
+                 node->data_.push_back(std::move(object));
+            } else {
+                 node->is_leaf_ = false;
+                 for (auto& elem : node->data_) {
+                    InsertObject(node, elem, depth);
+                }
+                InsertObject(node, object, depth);
+            }
         } else {
-            // uint8_t index = ComputeIndex(object->Box.centroid, node.centroid);
-            // if (node.children_[index] == nullptr) {
-            //      node.children_[index] = new OctNode(index, node.box_) 
-            // }
-            // insert(node.choldren_[index], object, depth + 1);
+            uint8_t index = ComputeIndex(object->GetBox().GetCentroid(), node->box_.GetCentroid());
+            if (node->children_[index] == nullptr) {
+                 node->children_[index] = std::make_unique<OctNode>(index, node->box_, depth + 1);
+            }
+            InsertObject(node->children_[index], object, depth + 1);
         }    
     }
 
-    // void RecomputeBounds(OctNode* node) {
-        // if (node.is_leaf_) {
-            // for (auto elem : node.data_) {
-            //      node->box_.ExtendTheBox(elem.Box) 
-            // } 
-        // else {
-        //      for (auto child : children) {
-            //      if (child != nullptr)
-            //          RecomputeBounds(child);
-            //          node->box_.ExtendTheBox(child.Box) 
-        // }
-        // }
-    // }
+    void RecomputeBounds(std::unique_ptr<OctNode>& node) {
+        if (node->is_leaf_) {
+            for (auto& elem : node->data_) {
+                 node->box_.ExtendBox(elem->GetBox());
+            } 
+        } else {
+            for (auto& child : node->children_) {
+                if (child != nullptr) {
+                     RecomputeBounds(child);
+                     node->box_.ExtendBox(child->box_);
+                } 
+            }
+        }
+    }
 
-    std::optional<Intersection> IntersectBVH(const Ray& ray) {
+    // std::optional<Intersection> IntersectBVH(const Ray& ray) {
         // auto intersect_box = IntersectBox(ray, root_.box_);
         // std::optional<Intersection> intersect_result = std::null_opt;
         // if (!intersect_box.has_value())
@@ -140,10 +153,9 @@ class BVH {
             // 
         // }
         // return intrsect_result;
-    }
+    // }
 
     ~BVH() {
-        delete root_;
     }
 
     private:
@@ -162,7 +174,27 @@ class BVH {
         return index;
     }
 
-    OctNode* root_;
-    size_t  depth_{16};
+    std::unique_ptr<OctNode> root_;
+    size_t  depth_{15};
     
 };
+
+void PrintNode(const std::unique_ptr<OctNode>& node) {
+    if (node == nullptr) {
+            return ;
+    }
+    if (node->is_leaf_) {
+        std::cout << "\t\t LEAF \n\n";
+        std::cout << "Node on depth" << node->depth_of_node_ << "\n";
+        std::cout << "Index of node: " << node->index_ << "\n";
+        for (const auto& elem : node->data_) {
+            elem->PrintPrivateMembers();
+        }
+    } else {
+        std::cout << "Node on depth" << node->depth_of_node_ << "\n";
+        std::cout << "Index of node: " << node->index_ << "\n";
+        for (const auto& child : node->children_) {
+            PrintNode(child);
+        }
+    }
+}

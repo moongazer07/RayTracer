@@ -19,7 +19,7 @@ int main () {
         std::cout << "\n";
     }
     std::cout << "\n\t  \n\n";
-    for (auto element : scene.GetObjects()) {
+    for (const auto& element : scene.GetObjects()) {
         element->PrintPrivateMembers();
     }
 

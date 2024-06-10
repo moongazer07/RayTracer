@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../geom/geometry.h"
+#include <memory>
 #include "material.h"
 #include "object.h"
 #include "light.h"
@@ -12,7 +13,6 @@
 #include <fstream>
 #include <iostream>
 #include <algorithm>
-#include <memory>
 
 
 std::vector<std::string> Split(const std::string& str, char delimiter){

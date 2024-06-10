@@ -11,9 +11,9 @@
 # http://www.cs.cmu.edu/~djames/15-864/pics/cornellBox.jpg
 #
 
-#mtllib CornellBox-Sphere.mtl
+mtllib CornellBox-Sphere.mtl
 
-#usemtl leftSphere
+usemtl leftSphere
 
 v 1 0 -2
 v -1 0 -2
@@ -21,7 +21,7 @@ v 0 1 -2
 
 f -3 -2 -1
 
-#usemtl rightSphere
+usemtl rightSphere
 
 v 1 0 1
 v -1 0 1
@@ -29,4 +29,4 @@ v 0 1 1
 
 f -3 -2 -1
 
-#S 0.0 -10.0 -2.0 10.0
+S 0.0 -10.0 -2.0 10.0
