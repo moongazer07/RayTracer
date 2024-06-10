@@ -7,21 +7,22 @@ public:
 
     Scene() = default;
 
-    Scene(std::vector<Object> faces, std::vector<SphereObject> spheres,
-            std::vector<Light> lights, std::map<std::string, Material> materials) 
-            : Faces_(faces)
-            , Spheres_(spheres)
-            , Lights_(lights)
-            , Materials_(materials) {};
+    // Scene(Scene&& scene) {
+    //     Vertices_ = std::move(scene.GetVertices());
+    //     VectorNormals_ = std::move(scene.GetVectorNormals());
+    //     VectorTextures_ = std::move(scene.GetVectorTextures())
+    //     for (const auto& object : scene.GetObjects()) {
+
+    //     }
+    //     Lights_ = std::move(scene.GetLights());
+    //     Materials_ = std::move(scene.GetMaterials())
+    // }
             
 
-    const std::vector<Object>& GetObjects() const {
-        return Faces_;
+    const std::vector<std::unique_ptr<Object>>& GetObjects() const {
+        return Objects_;
     }
 
-    const std::vector<SphereObject>& GetSphereObjects() const {
-        return Spheres_;
-    }
     const std::vector<Light>& GetLights() const {
         return Lights_;
     }
@@ -46,31 +47,31 @@ public:
         Materials_ = materials;
     }
 
-    void AddObject(Object obj) {
-        Faces_.push_back(obj);
+    void AddFaceObject(const FaceObject& face) {
+        Objects_.push_back(std::make_unique<FaceObject>(face));
     }
 
-    void AddSphere(SphereObject sphere) {
-        Spheres_.push_back(sphere);
+    void AddSphereObject(const SphereObject& sphere) {
+        Objects_.push_back(std::make_unique<SphereObject>(sphere));
     }
 
-    void AddLight(Light bulb) {
+    void AddLight(const Light& bulb) {
         Lights_.push_back(bulb);
     }
 
-    void AddMaterial(std::string name , Material material) {
+    void AddMaterial(const std::string& name , const Material& material) {
         Materials_.insert({name, material});
     }
 
-    void AddVertex(Vector vec) {
+    void AddVertex(const Vector& vec) {
         Vertices_.push_back(vec);
     }
 
-    void AddVectorNormal(Vector vec) {
+    void AddVectorNormal(const Vector& vec) {
         VectorNormals_.push_back(vec);
     }
 
-    void AddVectorTextures(Vector vec) {
+    void AddVectorTextures(const Vector& vec) {
         VectorTextures_.push_back(vec);
     }
 
@@ -79,8 +80,7 @@ private:
     std::vector<Vector> Vertices_;
     std::vector<Vector> VectorNormals_;
     std::vector<Vector> VectorTextures_;
-    std::vector<Object> Faces_;
-    std::vector<SphereObject> Spheres_;
+    std::vector<std::unique_ptr<Object>> Objects_;
     std::vector<Light> Lights_;
     std::map<std::string, Material> Materials_;
 };
@@ -125,15 +125,14 @@ void RetreiveFaces(const std::vector<std::string>& splitted, const Material* mat
             ++retreived_vrtx;
         } 
         if (retreived_vrtx == 3) {
-            scene->AddObject({material, initial, second, third});
+            scene->AddFaceObject({material, initial, second, third});
             second = third;
             retreived_vrtx = 2;
         }
     }
 }
 
-inline std::map<std::string, Material> ReadMaterials(std::string filename) {
-    std::string file_name{filename};
+inline std::map<std::string, Material> ReadMaterials(const std::string& file_name) {
 
     std::ifstream mtl_file(file_name);
 
@@ -182,7 +181,7 @@ std::string GetPath(std::string path) {
     return retreived_path;
 }
 
-inline Scene ReadScene(std::string file_name) { 
+inline Scene ReadScene(const std::string& file_name) { 
 
     std::ifstream obj_file(file_name);
     std::vector<std::string> splitted;
@@ -210,7 +209,7 @@ inline Scene ReadScene(std::string file_name) {
         } else if (splitted[ind] == "vn") {
             scene.AddVectorNormal(RetreiveVector(splitted, &ind));
         } else if (splitted[ind] == "S") {
-            scene.AddSphere({current_material, RetreiveSphere(splitted, &ind)});
+            scene.AddSphereObject({current_material, RetreiveSphere(splitted, &ind)});
         } else if (splitted[ind] == "P") {
             scene.AddLight(RetreiveLight(splitted, &ind));
         } else if (splitted[ind] == "f") {

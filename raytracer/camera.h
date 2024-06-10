@@ -109,24 +109,16 @@ void write_color(const Vector& pixel_color) {
 std::pair<std::optional<Intersection>, const Material*> CheckIntersection(const Ray& ray, const Scene& scene) {
     double dist = std::numeric_limits<double>::max();
     const Material* material = nullptr;
-    std::optional<Intersection> intersection = std::nullopt;
-    for (auto sphere : scene.GetSphereObjects()) {
-        auto int_with_sphere = GetIntersection(ray, sphere.sphere);
-        if (int_with_sphere != std::nullopt && int_with_sphere->GetDistance() < dist) {
-            dist = int_with_sphere->GetDistance();
-            intersection = int_with_sphere;
-            material = sphere.material;
+    std::optional<Intersection> result_intersection = std::nullopt;
+    for (const auto& object : scene.GetObjects()) {
+        auto intersection = object->GetIntersection(ray);
+        if (intersection != std::nullopt && intersection->GetDistance() < dist) {
+            dist = intersection->GetDistance();
+            result_intersection = intersection;
+            material = object->GetMaterial();
         }
     }
-    for (auto poly : scene.GetObjects()) {
-        auto int_with_poly = GetIntersection(ray, poly.polygon);
-        if (int_with_poly != std::nullopt && int_with_poly->GetDistance() < dist) {
-            dist = int_with_poly->GetDistance(); 
-            intersection = int_with_poly;
-            material = poly.material;
-        }
-    }
-    return {intersection, material};
+    return {result_intersection, material};
 }
 
 double ComputeDiffuse(const Vector& point_to_light, const Vector& normal) {

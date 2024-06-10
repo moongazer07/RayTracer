@@ -3,9 +3,9 @@
 
 struct Box { 
 
-    Box() : bottom_(Vector(std::numeric_limits<double>::max()))
+    Box() : bottom_(Vector(std::numeric_limits<double>::min()))
           , top_(Vector(std::numeric_limits<double>::max()))
-          , centroid_((bottom_ + top_) * 0.5)
+          , centroid_(0)
           {}
 
     Box(const Triangle& triangle) {
@@ -26,7 +26,9 @@ struct Box {
         // max = center + raidus
     }
 
-    void ExtendTheBox(const Vector& bigger_bot, const Vector& bigger_top) {
+    void ExtendTheBox(const Box& new_box) {
+        // Vector& new_bot = new_box.bot;
+        // Vector& new_top = new_box.top;
         // for every value i in bot_, top_
         // compare bot[i] with bigger_bot[i]
         // compare top[i] with bigger_top[i]

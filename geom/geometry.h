@@ -12,7 +12,7 @@
 #include <limits>
 
 
-std::optional<Intersection> GetIntersection(const Ray& ray, const Sphere& sphere) {
+std::optional<Intersection> GetSphereIntersection(const Ray& ray, const Sphere& sphere) {
     Vector oc = sphere.GetCenter() - ray.GetOrigin();
     double tc = DotProduct(oc, ray.GetDirection());
     if (tc < 0) {
@@ -48,7 +48,7 @@ static inline double det3x3(const Vector& vec0, const Vector& vec1, const Vector
     return DotProduct(row0, CrossProduct(row1, row2));
 }
 
-std::optional<Intersection> GetIntersection(const Ray& ray, const Triangle& triangle) {
+std::optional<Intersection> GetTriangleIntersection(const Ray& ray, const Triangle& triangle) {
     constexpr float epsilon = std::numeric_limits<float>::epsilon();
     Vector constant_terms = ray.GetOrigin() - triangle.GetVertex(0);
     Vector vec_u = triangle.GetVertex(1) - triangle.GetVertex(0);

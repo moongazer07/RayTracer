@@ -12,6 +12,7 @@
 #include <fstream>
 #include <iostream>
 #include <algorithm>
+#include <memory>
 
 
 std::vector<std::string> Split(const std::string& str, char delimiter){
@@ -39,7 +40,7 @@ void ChangeToSpace(std::string* line) {
     }
 }
 
-size_t FindNonEmpty(std::vector<std::string> splitted, int begin) {
+size_t FindNonEmpty(const std::vector<std::string>& splitted, int begin) {
     for (size_t ind = begin + 1; ind < splitted.size(); ++ind) {
         if (!splitted[ind].empty()) {
             return ind;
