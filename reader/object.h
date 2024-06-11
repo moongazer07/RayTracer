@@ -1,9 +1,9 @@
 #pragma once
 
-
-#include "../geom/geometry.h"
-#include "scene_utils.h"
+#include "../raytracer/common_libs.h"
+#include "../geometry/geometry.h"
 #include "../raytracer/BVH/box.h"
+#include "material.h"
 
 class Object {
 
@@ -46,6 +46,10 @@ class FaceObject : public Object  {
 
     std::optional<Intersection> GetIntersection(const Ray& ray) const override {
         return GetTriangleIntersection(ray, polygon_);
+    }
+
+    const Triangle& GetPolygon() const {
+        return polygon_;
     }
 
     const Vector* GetNormal(size_t index) const {

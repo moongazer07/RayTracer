@@ -1,7 +1,11 @@
 #pragma once
 
-#include "raytracerlib.h"
+#include "common_libs.h"
+#include "../geometry/geometry.h"
+#include "../reader/scene.h"
+#include "render_options.h"
 #include "camera.h"
+
 
 std::pair<std::optional<Intersection>, std::shared_ptr<Material>> CheckIntersection(const Ray& ray, const Scene& scene) {
     double dist = std::numeric_limits<double>::max();

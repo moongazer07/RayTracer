@@ -1,18 +1,9 @@
 #pragma once
 
-#include "../geom/geometry.h"
-#include <memory>
-#include "material.h"
+#include "../raytracer/common_libs.h"
+#include "../geometry/geometry.h"
 #include "object.h"
 #include "light.h"
-
-#include <string_view>
-#include <vector>
-#include <map>
-#include <string>
-#include <fstream>
-#include <iostream>
-#include <algorithm>
 
 
 std::vector<std::string> Split(const std::string& str, char delimiter){

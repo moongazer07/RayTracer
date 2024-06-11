@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../geom/geometry.h"
+#include "../raytracer/common_libs.h"
+#include "../geometry/vector.h"
 
 struct Material {
     Material() : specular_exponent(0)

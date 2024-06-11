@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../geom/geometry.h"
+#include "../raytracer/common_libs.h"
+#include "../geometry/vector.h"
 
 struct Light {
     Vector position;

@@ -1,7 +1,10 @@
 #pragma once
 
-#include "raytracerlib.h"
-#include <math.h>
+#include "common_libs.h"
+#include "../geometry/vector.h"
+#include "../geometry/ray.h"
+#include "../reader/scene.h"
+
 
     // 1. Check wheathe ray intersects any object
     // 2. Depending on the mode, compute the color in a point
@@ -66,7 +69,7 @@ struct Camera {
         double scale_;
         CameraToWorld camera_to_world_;
         Vector new_look_from_;
-        int samples_per_pixel_{1};
+        int samples_per_pixel_{10};
         double sample_per_pixel_scale_;
 
         Camera (size_t screen_width, size_t screen_height, double fov, const Vector& look_from, const Vector& look_to) 
@@ -76,7 +79,7 @@ struct Camera {
         , scale_(std::tan(DegreesToRadians(fov / 2))) 
         , camera_to_world_(look_from, look_to)
         , new_look_from_(look_from)
-        , sample_per_pixel_scale_(1/samples_per_pixel_)
+        , sample_per_pixel_scale_(static_cast<double>(1)/samples_per_pixel_)
         {};
 
         Vector ApplyMatrix(const Vector& standart) const {
@@ -160,10 +163,8 @@ void DivideTemplate(std::vector<std::vector<Vector>>* templat, const Camera& cam
 }
 
 Vector ComputeDirection(size_t i, size_t j, const Camera& camera) {
-    // auto offset_x = RandomDouble() - 0.5;
-    // auto offset_y = RandomDouble() - 0.5;
-    auto offset_x = 0;
-    auto offset_y = 0;
+    auto offset_x = RandomDouble() - 0.5;
+    auto offset_y = RandomDouble() - 0.5;
     auto x = (2 * ((static_cast<double>(i) + 0.5 + offset_x) / static_cast<double>(camera.screen_width_)) - 1) * camera.aspect_ratio_ * camera.scale_;
     auto y = (1 - 2 * ((static_cast<double>(j) + 0.5 + offset_y) /static_cast<double>(camera.screen_height_))) * camera.scale_;
     return UnitVector(camera.ApplyMatrix({x, y, -1}));

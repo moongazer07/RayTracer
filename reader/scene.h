@@ -1,23 +1,14 @@
 #pragma once
 
+#include "../raytracer/common_libs.h"
+#include "object.h"
+#include "light.h"
 #include "scene_utils.h"
 
 class Scene {
 public:
 
     Scene() = default;
-
-    // Scene(Scene&& scene) {
-    //     Vertices_ = std::move(scene.GetVertices());
-    //     VectorNormals_ = std::move(scene.GetVectorNormals());
-    //     VectorTextures_ = std::move(scene.GetVectorTextures())
-    //     for (const auto& object : scene.GetObjects()) {
-
-    //     }
-    //     Lights_ = std::move(scene.GetLights());
-    //     Materials_ = std::move(scene.GetMaterials())
-    // }
-            
 
     const std::vector<std::unique_ptr<Object>>& GetObjects() const {
         return Objects_;
@@ -177,7 +168,7 @@ inline std::map<std::string, Material> ReadMaterials(const std::string& file_nam
 
 std::string GetPath(std::string path) {
     std::vector<std::string> splitted = Split(path, '/');
-    std::string retreived_path = "";
+    std::string retreived_path = "/";
 
     for (size_t ind = 0; ind < splitted.size() - 1; ++ind) {
         retreived_path += splitted[ind] + "/";
@@ -227,4 +218,35 @@ inline Scene ReadScene(const std::string& file_name) {
     obj_file.close();
 
     return scene;
+}
+
+void PrintScene (const Scene& scene) {
+    for (auto [key, material] : scene.GetMaterials()) {
+        std::cout << "Material " << key << std::endl;
+        std::cout << "Ka: ";
+        PrintVec(material.ambient_color);
+        std::cout << "Kd: ";
+        PrintVec(material.diffuse_color);
+        std::cout << "Ks: ";
+        PrintVec(material.specular_color);
+        std::cout << "Ke: ";
+        PrintVec(material.intensity);
+        std::cout << "Ns: " << material.specular_exponent << std::endl;
+        std::cout << "Ni: " << material.refraction_index << std::endl;
+        std::cout << "al: ";
+        PrintVec(material.albedo);
+        std::cout << "\n";
+    }
+    std::cout << "\n\t  \n\n";
+    for (const auto& element : scene.GetObjects()) {
+        element->PrintPrivateMembers();
+    }
+
+    std::cout << "\n\t Lights \n\n";
+    for (auto light : scene.GetLights()) {
+        std::cout << "Added a light with position: ";
+        PrintVec(light.position);
+        std::cout << "   \t\tand intensivity ";
+        PrintVec(light.intensity);
+    }
 }

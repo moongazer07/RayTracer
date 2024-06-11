@@ -1,7 +1,11 @@
 #pragma once
 
-#include "raytracerlib.h"
+#include "common_libs.h"
+#include "../geometry/geometry.h"
+#include "../reader/scene.h"
+#include "render_options.h"
 #include "camera.h"
+#include "BVH/tree.h"
 
 Vector ComputeColorFull(const Ray& ray, const Scene& scene, const BVH& bvh, int depth, double refraction_index);
 
@@ -73,7 +77,7 @@ Vector ComputeColorFull(const Ray& ray, const Scene& scene, const BVH& bvh, int 
     Vector albedo = material->albedo;
     Vector diffuse_component, specular_component;
     if (albedo[0]) {
-        std::tie(diffuse_component, specular_component)  = ComputeDiffusiveSpecular(scene, ray, intersection.value(), material->specular_exponent);
+        std::tie(diffuse_component, specular_component)  = ComputeDiffusiveSpecular(scene, bvh, ray, intersection.value(), material->specular_exponent);
     }
     Vector phong_diff = material->diffuse_color * diffuse_component;
     Vector phong_spec = material->specular_color * specular_component;
@@ -115,6 +119,5 @@ void Render(const Camera& camera, const Scene& scene, const BVH& bvh, const Rend
         }
     }
     double max = FindMax(image_buffer, camera);
-    DivideTemplateDistance(&image_buffer, camera, max);
-    // DivideTemplate(&image_buffer, camera, max);
+    DivideTemplate(&image_buffer, camera, max);
 }

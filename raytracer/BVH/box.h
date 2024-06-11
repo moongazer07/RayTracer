@@ -1,6 +1,9 @@
 #pragma once
 
-#include "../raytracerlib.h"
+#include "../common_libs.h"
+#include "../../geometry/vector.h"
+#include "../../geometry/triangle.h"
+#include "../../geometry/sphere.h"
 
 struct Box { 
 
@@ -23,15 +26,6 @@ struct Box {
     }
 
     Box(const Triangle& triangle) {
-        // compute the box for triangle :
-        // for every point
-        // project x on normal(1,0,0)
-        // project y on normal(0,1,0)
-        // project z on normal(0,0,1)
-        // take maximal x,y,z
-        // take minimal x,y,z
-        // max x, y, z will be top
-        // min x, y, z will be bottom
         double x_min = triangle.GetVertex(0)[0];
         double x_max = triangle.GetVertex(0)[0];
         double y_min = triangle.GetVertex(0)[1];
@@ -52,9 +46,6 @@ struct Box {
     }
 
     Box(const Sphere& sphere) {
-        // compute the box for sphere
-        // min = center - radius
-        // max = center + raidus
         bottom_ = sphere.GetCenter() - sphere.GetRadius();
         top_ = sphere.GetCenter() + sphere.GetRadius();
         ComputeCentroid();
@@ -80,13 +71,6 @@ struct Box {
     }
 
     void ExtendBox(const Box& other) {
-        // Vector& new_bot = new_box.bot;
-        // Vector& new_top = new_box.top;
-        // for every value i in bot_, top_
-        // compare bot[i] with bigger_bot[i]
-        // compare top[i] with bigger_top[i]
-        // update if bigger_bot[i] is smaller
-        // update if bigger_top[i] is bigger
         for (size_t i = 0; i < 3; ++i) {
             bottom_[i] = std::min(bottom_[i], other.GetBot()[i]);
             top_[i] = std::max(top_[i], other.GetTop()[i]);
@@ -126,21 +110,14 @@ std::optional<std::pair<double, double>> IntersectBox(const Ray& ray, const Box&
             std::swap(t0, t1);  //in case ray coord was negative
         }
         if (tNear > t1 || tFurther < t0) {
-            // std::cout << "No intersection found1" << std::endl;
             return std::nullopt;
         }
-        if (tNear < t0) {
-            tNear = t0;
-        }
-        if (t1 < tFurther) {
-             tFurther = t1;
-        }
+        tNear = std::max(tNear, t0);
+        tFurther = std::min(tFurther, t1);
         if (tNear > tFurther) {
-            // std::cout << "No intersection found2" << std::endl;
             return std::nullopt;
         }
     }
-    // std::cout << "We finished computing intersection" << std::endl;
     return std::make_optional(std::make_pair(tNear, tFurther));
 }
 
