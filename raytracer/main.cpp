@@ -1,6 +1,8 @@
 #include "raytracerlib.h"
 #include "camera.h"
 #include "BVH/tree.h"
+#include "render.h"
+#include "renderBVH.h"
 
 // main gets as an argument the name of the .OBJ file
 // Then it retreives the scene from the file (parsing part)
@@ -20,6 +22,6 @@ int main () {
     BVH bvh = BVH(scene);
     // PrintNode(bvh.GetRoot());
     Camera camera{image_width, image_height, 90, {-0.9, 1.9, -1}, {0.0, 0.0, 0}};
-    RenderOptions options{3, RenderMode::kNormal};
-    Render(camera, bvh, options);
+    RenderOptions options{3, RenderMode::kDepth};
+    Render(camera, scene, bvh, options);
 }

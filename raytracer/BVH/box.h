@@ -117,7 +117,7 @@ std::optional<std::pair<double, double>> IntersectBox(const Ray& ray, const Box&
     double t0 = 0;
     double t1 = 0;
     for (size_t ind = 0; ind < 3; ++ind) {
-        if (ray_direction[ind] == 0 && ray_origin[ind] < box.GetBot()[ind] || box.GetTop()[ind] < ray_origin[ind]){
+        if (ray_direction[ind] == 0 && (ray_origin[ind] < box.GetBot()[ind] || box.GetTop()[ind] < ray_origin[ind])){
             return std::nullopt;
         }
         t0 = (bottom[ind] - ray_origin[ind]) * denominator[ind];
@@ -126,17 +126,29 @@ std::optional<std::pair<double, double>> IntersectBox(const Ray& ray, const Box&
             std::swap(t0, t1);  //in case ray coord was negative
         }
         if (tNear > t1 || tFurther < t0) {
+            // std::cout << "No intersection found1" << std::endl;
             return std::nullopt;
         }
         if (tNear < t0) {
             tNear = t0;
         }
         if (t1 < tFurther) {
-             tFar = t1;
+             tFurther = t1;
         }
         if (tNear > tFurther) {
+            // std::cout << "No intersection found2" << std::endl;
             return std::nullopt;
         }
     }
+    // std::cout << "We finished computing intersection" << std::endl;
     return std::make_optional(std::make_pair(tNear, tFurther));
+}
+
+void PrintBox(const Box& box) {
+    std::cout << "Bot of the box: " << std::endl;
+    PrintVec(box.GetBot());
+    std::cout << "Top of the box: " << std::endl;
+    PrintVec(box.GetTop());
+    std::cout << "Centroid of the box: " << std::endl;
+    PrintVec(box.GetCentroid());
 }

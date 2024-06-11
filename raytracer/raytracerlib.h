@@ -8,3 +8,4 @@
 #include "render_options.h"
 #include "../geom/geometry.h"
 #include "../reader/scene.h"
+#include "BVH/tree.h"
