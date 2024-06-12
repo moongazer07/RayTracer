@@ -1,0 +1,45 @@
+TEST_CASE: shading_parts/scene.obj
+
+    LookFrom: (0, 0, 0)
+    LookAt: (0, 0, -1)
+
+TEST_CASE: triangle/scene.obj
+
+    LookFrom: 0.0, 2.0, 0.0
+    LookAt: 0.0, 0.0, 0.0
+
+TEST_CASE: classic_box/CornellBox-Original.obj
+
+    LookFrom: -0.5, 1.5, 0.98
+    LookAt: 0.0, 1.0, 0.0
+    RenderOptions render_opts{4};
+
+TEST_CASE: classic_box/CornellBox-Original.obj
+
+    LookFrom: -0.9, 1.9, -1
+    LookAt: 0.0, 0.0, 0
+    RenderOptions render_opts{4};
+
+TEST_CASE: mirrors/scene.obj
+
+    LookFrom: 2, 1.5, -0.1
+    LookAt: 1, 1.2, -2.8
+    RenderOptions render_opts{9};
+
+TEST_CASE: box/cube.obj
+
+    LookFrom: 0.0, 0.7, 1.75
+    LookAt: 0.0, 0.7, 0.0
+    RenderOptions render_opts{4};
+
+TEST_CASE: distorted_box/CornellBox-Original.obj
+
+    LookFrom: -0.5, 1.5, 1.98
+    LookAt: 0.0, 1.0, 0.0
+    RenderOptions render_opts{4};
+
+TEST_CASE: deer/CERF_Free.obj
+
+    LookFrom: 100, 200, 150
+    LookAt: 0.0, 100.0, 0.0
+    RenderOptions render_opts{1};
